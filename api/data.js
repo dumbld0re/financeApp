@@ -3,10 +3,18 @@ import { Redis } from '@upstash/redis'
 const DATA_KEY = 'finance:danny-miguel'
 
 function getRedis() {
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
-    return null
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    return Redis.fromEnv()
   }
-  return Redis.fromEnv()
+
+  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+    return new Redis({
+      url: process.env.KV_REST_API_URL,
+      token: process.env.KV_REST_API_TOKEN,
+    })
+  }
+
+  return null
 }
 
 function jsonResponse(body, status = 200) {
@@ -39,14 +47,14 @@ export async function GET(request) {
 
   const redis = getRedis()
   if (!redis) {
-    return jsonResponse({ error: 'Sync storage unavailable' }, 503)
+    return jsonResponse({ error: 'Redis not configured' }, 503)
   }
 
   try {
     const data = await redis.get(DATA_KEY)
     return jsonResponse({ data: data ?? null })
   } catch {
-    return jsonResponse({ error: 'Sync storage unavailable' }, 503)
+    return jsonResponse({ error: 'Redis error' }, 503)
   }
 }
 
@@ -57,7 +65,7 @@ export async function PUT(request) {
 
   const redis = getRedis()
   if (!redis) {
-    return jsonResponse({ error: 'Sync storage unavailable' }, 503)
+    return jsonResponse({ error: 'Redis not configured' }, 503)
   }
 
   let body
@@ -81,6 +89,6 @@ export async function PUT(request) {
     await redis.set(DATA_KEY, payload)
     return jsonResponse({ ok: true, updatedAt: payload.updatedAt })
   } catch {
-    return jsonResponse({ error: 'Sync storage unavailable' }, 503)
+    return jsonResponse({ error: 'Redis error' }, 503)
   }
 }

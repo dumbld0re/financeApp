@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { setData, initializeDataIfEmpty } from './utils/localStorage'
-import { mergeData, pullData, pushData, isSyncEnabled } from './utils/sync'
+import {
+  mergeData,
+  pullData,
+  pushData,
+  isSyncEnabled,
+  checkHealth,
+  getSyncSetupHint,
+} from './utils/sync'
 import {
   computeNetBalance,
   computeTotalBalance,
@@ -22,6 +29,7 @@ export default function App() {
   const [addToGoalId, setAddToGoalId] = useState(null)
   const [goalToDelete, setGoalToDelete] = useState(null)
   const [syncStatus, setSyncStatus] = useState(isSyncEnabled() ? 'syncing' : 'local')
+  const [syncMessage, setSyncMessage] = useState(getSyncSetupHint())
   const skipCloudPush = useRef(true)
 
   useEffect(() => {
@@ -31,13 +39,43 @@ export default function App() {
 
     async function syncFromCloud() {
       setSyncStatus('syncing')
-      const remote = await pullData()
+      setSyncMessage(null)
+
+      const health = await checkHealth()
       if (cancelled) return
+
+      if (health && !health.redis) {
+        setSyncStatus('offline')
+        setSyncMessage('Redis missing — add Upstash Redis integration on Vercel')
+        return
+      }
+
+      if (health && !health.serverSecret) {
+        setSyncStatus('offline')
+        setSyncMessage('Add SYNC_SECRET on Vercel, then redeploy')
+        return
+      }
+
+      const { data: remote, error } = await pullData()
+      if (cancelled) return
+
+      if (error) {
+        setSyncStatus('offline')
+        setSyncMessage(error)
+        return
+      }
 
       setDataState((local) => {
         if (!remote) {
-          pushData(local).then((ok) => {
-            if (!cancelled) setSyncStatus(ok ? 'synced' : 'offline')
+          pushData(local).then((result) => {
+            if (cancelled) return
+            if (result.ok) {
+              setSyncStatus('synced')
+              setSyncMessage(null)
+            } else {
+              setSyncStatus('offline')
+              setSyncMessage(result.error)
+            }
           })
           return local
         }
@@ -46,11 +84,19 @@ export default function App() {
         setData(merged)
 
         if ((local.updatedAt || 0) > (remote.updatedAt || 0)) {
-          pushData(merged).then((ok) => {
-            if (!cancelled) setSyncStatus(ok ? 'synced' : 'offline')
+          pushData(merged).then((result) => {
+            if (cancelled) return
+            if (result.ok) {
+              setSyncStatus('synced')
+              setSyncMessage(null)
+            } else {
+              setSyncStatus('offline')
+              setSyncMessage(result.error)
+            }
           })
         } else {
           setSyncStatus('synced')
+          setSyncMessage(null)
         }
 
         return merged
@@ -75,8 +121,14 @@ export default function App() {
 
     const timer = setTimeout(async () => {
       setSyncStatus('syncing')
-      const ok = await pushData(data)
-      setSyncStatus(ok ? 'synced' : 'offline')
+      const result = await pushData(data)
+      if (result.ok) {
+        setSyncStatus('synced')
+        setSyncMessage(null)
+      } else {
+        setSyncStatus('offline')
+        setSyncMessage(result.error)
+      }
     }, 600)
 
     return () => clearTimeout(timer)
@@ -138,6 +190,7 @@ export default function App() {
           netBalance={netBalance}
           savingsPercentage={savingsPercentage}
           syncStatus={syncStatus}
+          syncMessage={syncMessage}
         />
 
         <SavingsGoals

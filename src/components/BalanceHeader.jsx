@@ -1,5 +1,5 @@
 import { formatCurrency } from '../utils/calculations'
-import { isSyncEnabled } from '../utils/sync'
+import { isSyncEnabled, getSyncSetupHint } from '../utils/sync'
 
 const SYNC_LABELS = {
   syncing: 'Syncing…',
@@ -13,11 +13,14 @@ export default function BalanceHeader({
   netBalance,
   savingsPercentage,
   syncStatus,
+  syncMessage,
 }) {
   const savingsLabel =
     savingsPercentage === null ? '--' : `${Math.round(savingsPercentage)}%`
 
+  const setupHint = getSyncSetupHint()
   const syncLabel = isSyncEnabled() ? SYNC_LABELS[syncStatus] || '' : ''
+  const detail = syncMessage || setupHint
 
   return (
     <header className="balance-header">
@@ -27,6 +30,7 @@ export default function BalanceHeader({
       <p className="balance-net">Net: {formatCurrency(netBalance)}</p>
       <p className="balance-savings">Savings: {savingsLabel}</p>
       {syncLabel && <p className="sync-status">{syncLabel}</p>}
+      {detail && <p className="sync-detail">{detail}</p>}
     </header>
   )
 }

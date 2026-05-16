@@ -68,6 +68,16 @@ body {
   letter-spacing: 0.05em;
 }
 
+.sync-detail {
+  margin-top: 6px;
+  font-size: 0.8125rem;
+  color: var(--expense);
+  line-height: 1.4;
+  max-width: 280px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .balance-label {
   font-size: 0.875rem;
   color: var(--text-muted);
