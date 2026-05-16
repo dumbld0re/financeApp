@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { generateId } from '../utils/calculations'
+import { generateId, getActiveGoals } from '../utils/calculations'
 import { categoriesForType, defaultCategoryForType } from '../utils/categories'
 
 const TYPES = [
@@ -8,8 +8,15 @@ const TYPES = [
   { id: 'savings_transfer', label: 'Savings Transfer' },
 ]
 
-export default function TransactionModal({ goals, preselectedGoalId, onClose, onSubmit }) {
+export default function TransactionModal({
+  goals,
+  categories,
+  preselectedGoalId,
+  onClose,
+  onSubmit,
+}) {
   const isGoalAdd = Boolean(preselectedGoalId)
+  const activeGoals = getActiveGoals(goals)
 
   const [step, setStep] = useState(isGoalAdd ? 2 : 1)
   const [type, setType] = useState(isGoalAdd ? 'savings_transfer' : null)
@@ -21,7 +28,7 @@ export default function TransactionModal({ goals, preselectedGoalId, onClose, on
 
   function selectType(selected) {
     setType(selected)
-    setCategory(defaultCategoryForType(selected))
+    setCategory(defaultCategoryForType(selected, categories))
     setStep(2)
     setError('')
   }
@@ -62,7 +69,7 @@ export default function TransactionModal({ goals, preselectedGoalId, onClose, on
 
     if (type === 'savings_transfer') {
       if (!goalId) {
-        setError('Select a savings goal')
+        setError('Select where to save')
         return
       }
     }
@@ -76,7 +83,7 @@ export default function TransactionModal({ goals, preselectedGoalId, onClose, on
           ? category
           : type === 'savings_transfer'
             ? description.trim() ||
-              `Transfer to ${goals.find((g) => g.id === goalId)?.name ?? 'goal'}`
+              `Transfer to ${activeGoals.find((g) => g.id === goalId)?.name ?? 'savings'}`
             : description.trim(),
       date: Date.now(),
     }
@@ -93,7 +100,7 @@ export default function TransactionModal({ goals, preselectedGoalId, onClose, on
     onClose()
   }
 
-  const categoryOptions = categoriesForType(type)
+  const categoryOptions = categoriesForType(type, categories)
 
   return (
     <div className="modal-overlay" onClick={onClose} role="presentation">
@@ -106,7 +113,7 @@ export default function TransactionModal({ goals, preselectedGoalId, onClose, on
       >
         <div className="modal-header">
           <h2 id="transaction-modal-title">
-            {isGoalAdd ? 'Add to goal' : step === 1 ? 'New transaction' : TYPES.find((t) => t.id === type)?.label}
+            {isGoalAdd ? 'Add to savings' : step === 1 ? 'New transaction' : TYPES.find((t) => t.id === type)?.label}
           </h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
             ×
@@ -187,17 +194,17 @@ export default function TransactionModal({ goals, preselectedGoalId, onClose, on
 
             {type === 'savings_transfer' && (
               <label className="field">
-                <span>Savings goal</span>
+                <span>Save to</span>
                 <select
                   value={goalId}
                   onChange={(e) => setGoalId(e.target.value)}
                   required
                   disabled={isGoalAdd}
                 >
-                  <option value="">Select a goal</option>
-                  {goals.map((g) => (
+                  <option value="">Select</option>
+                  {activeGoals.map((g) => (
                     <option key={g.id} value={g.id}>
-                      {g.name}
+                      {g.name} {g.kind === 'long_term' ? '(long-term)' : ''}
                     </option>
                   ))}
                 </select>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { setData, initializeDataIfEmpty } from './utils/localStorage'
+import { migrateData } from './utils/migrate'
 import {
   mergeData,
   pullData,
@@ -21,13 +22,16 @@ import TransactionList from './components/TransactionList'
 import TransactionModal from './components/TransactionModal'
 import GoalModal from './components/GoalModal'
 import ConfirmModal from './components/ConfirmModal'
+import CategoriesModal from './components/CategoriesModal'
 
 export default function App() {
   const [data, setDataState] = useState(() => initializeDataIfEmpty())
   const [transactionModalOpen, setTransactionModalOpen] = useState(false)
   const [goalModalOpen, setGoalModalOpen] = useState(false)
+  const [categoriesModalOpen, setCategoriesModalOpen] = useState(false)
   const [addToGoalId, setAddToGoalId] = useState(null)
   const [goalToDelete, setGoalToDelete] = useState(null)
+  const [goalToComplete, setGoalToComplete] = useState(null)
   const [syncStatus, setSyncStatus] = useState(isSyncEnabled() ? 'syncing' : 'local')
   const [syncMessage, setSyncMessage] = useState(getSyncSetupHint())
   const skipCloudPush = useRef(true)
@@ -46,7 +50,7 @@ export default function App() {
 
       if (health && !health.redis) {
         setSyncStatus('offline')
-        setSyncMessage('Redis missing — add Upstash Redis integration on Vercel')
+        setSyncMessage(health.detail || 'Redis missing — add Upstash Redis integration on Vercel')
         return
       }
 
@@ -80,7 +84,7 @@ export default function App() {
           return local
         }
 
-        const merged = mergeData(local, remote)
+        const merged = migrateData(mergeData(local, remote))
         setData(merged)
 
         if ((local.updatedAt || 0) > (remote.updatedAt || 0)) {
@@ -135,8 +139,8 @@ export default function App() {
   }, [data])
 
   const totalSavings = computeTotalSavings(data.savingsGoals)
-  const netBalance = computeNetBalance(data.transactions)
-  const totalBalance = computeTotalBalance(data.transactions, data.savingsGoals)
+  const netBalance = computeNetBalance(data.transactions, data.savingsGoals)
+  const totalBalance = computeTotalBalance(data.transactions)
   const savingsPercentage = computeSavingsPercentage(totalBalance, totalSavings)
 
   function persist(next) {
@@ -157,10 +161,11 @@ export default function App() {
     persist(next)
   }
 
-  function handleCreateGoal({ name, targetAmount }) {
+  function handleCreateGoal({ name, targetAmount, kind }) {
     const goal = {
       id: generateId(),
       name,
+      kind: kind === 'long_term' ? 'long_term' : 'goal',
       targetAmount,
       currentAmount: 0,
       createdAt: Date.now(),
@@ -170,11 +175,85 @@ export default function App() {
 
   function handleConfirmDeleteGoal() {
     if (!goalToDelete) return
+
+    const amount = goalToDelete.currentAmount
+    let transactions = data.transactions
+
+    if (amount > 0) {
+      transactions = [
+        {
+          id: generateId(),
+          type: 'savings_release',
+          amount,
+          description: `Released from ${goalToDelete.name}`,
+          goalId: goalToDelete.id,
+          date: Date.now(),
+        },
+        ...transactions,
+      ]
+    }
+
     persist({
       ...data,
+      transactions,
       savingsGoals: data.savingsGoals.filter((g) => g.id !== goalToDelete.id),
     })
     setGoalToDelete(null)
+  }
+
+  function handleConfirmCompleteGoal() {
+    if (!goalToComplete) return
+
+    const amount = goalToComplete.currentAmount
+    if (amount <= 0) {
+      setGoalToComplete(null)
+      return
+    }
+
+    persist({
+      ...data,
+      transactions: [
+        {
+          id: generateId(),
+          type: 'goal_complete',
+          amount,
+          description: `Purchased: ${goalToComplete.name}`,
+          goalId: goalToComplete.id,
+          date: Date.now(),
+        },
+        ...data.transactions,
+      ],
+      savingsGoals: data.savingsGoals.map((g) =>
+        g.id === goalToComplete.id
+          ? { ...g, currentAmount: 0, completedAt: Date.now() }
+          : g
+      ),
+    })
+    setGoalToComplete(null)
+  }
+
+  function handleAddCategory(type, name) {
+    const list = data.categories[type]
+    if (list.includes(name)) return
+    persist({
+      ...data,
+      categories: {
+        ...data.categories,
+        [type]: [...list, name],
+      },
+    })
+  }
+
+  function handleRemoveCategory(type, name) {
+    const list = data.categories[type]
+    if (list.length <= 1) return
+    persist({
+      ...data,
+      categories: {
+        ...data.categories,
+        [type]: list.filter((c) => c !== name),
+      },
+    })
   }
 
   function openAddToGoal(goalId) {
@@ -198,9 +277,15 @@ export default function App() {
           onAddToGoal={openAddToGoal}
           onCreateGoal={() => setGoalModalOpen(true)}
           onDeleteGoal={setGoalToDelete}
+          onCompleteGoal={setGoalToComplete}
         />
 
-        <TransactionList transactions={data.transactions} goals={data.savingsGoals} />
+        <TransactionList
+          transactions={data.transactions}
+          goals={data.savingsGoals}
+          categories={data.categories}
+          onManageCategories={() => setCategoriesModalOpen(true)}
+        />
       </main>
 
       <button
@@ -218,6 +303,7 @@ export default function App() {
       {transactionModalOpen && (
         <TransactionModal
           goals={data.savingsGoals}
+          categories={data.categories}
           preselectedGoalId={addToGoalId}
           onClose={() => {
             setTransactionModalOpen(false)
@@ -234,13 +320,36 @@ export default function App() {
         />
       )}
 
+      {categoriesModalOpen && (
+        <CategoriesModal
+          categories={data.categories}
+          onClose={() => setCategoriesModalOpen(false)}
+          onAdd={handleAddCategory}
+          onRemove={handleRemoveCategory}
+        />
+      )}
+
       {goalToDelete && (
         <ConfirmModal
-          title="Delete goal?"
-          message={`Are you sure you want to delete "${goalToDelete.name}"? This cannot be undone.`}
-          confirmLabel="Delete"
+          title={goalToDelete.kind === 'long_term' ? 'Remove long-term savings?' : 'Delete goal?'}
+          message={
+            goalToDelete.currentAmount > 0
+              ? `Are you sure? ${goalToDelete.name} has ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(goalToDelete.currentAmount)} that will return to your spendable balance.`
+              : `Remove "${goalToDelete.name}"?`
+          }
+          confirmLabel={goalToDelete.kind === 'long_term' ? 'Remove' : 'Delete'}
           onClose={() => setGoalToDelete(null)}
           onConfirm={handleConfirmDeleteGoal}
+        />
+      )}
+
+      {goalToComplete && (
+        <ConfirmModal
+          title="Complete goal?"
+          message={`Mark "${goalToComplete.name}" as purchased? ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(goalToComplete.currentAmount)} will be recorded as spent.`}
+          confirmLabel="Complete"
+          onClose={() => setGoalToComplete(null)}
+          onConfirm={handleConfirmCompleteGoal}
         />
       )}
     </div>

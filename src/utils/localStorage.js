@@ -1,10 +1,12 @@
-import { applySampleDataIfNeeded } from './sampleData'
+import { migrateData } from './migrate'
+import { DEFAULT_CATEGORIES } from './categories'
 
 const STORAGE_KEY = 'finance_data'
 
-const DEFAULT_DATA = {
+export const DEFAULT_DATA = {
   transactions: [],
   savingsGoals: [],
+  categories: { ...DEFAULT_CATEGORIES },
 }
 
 function isValidData(data) {
@@ -22,7 +24,7 @@ export function getData() {
     if (!raw) return { ...DEFAULT_DATA }
     const parsed = JSON.parse(raw)
     if (!isValidData(parsed)) return { ...DEFAULT_DATA }
-    return parsed
+    return migrateData(parsed)
   } catch {
     return { ...DEFAULT_DATA }
   }
@@ -36,24 +38,23 @@ export function setData(data) {
   }
 }
 
-function finalizeData(data) {
-  const withSamples = applySampleDataIfNeeded(data)
-  setData(withSamples)
-  return withSamples
-}
-
 export function initializeDataIfEmpty() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) {
-      return finalizeData({ ...DEFAULT_DATA })
+      setData({ ...DEFAULT_DATA })
+      return { ...DEFAULT_DATA }
     }
     const parsed = JSON.parse(raw)
     if (!isValidData(parsed)) {
-      return finalizeData({ ...DEFAULT_DATA })
+      setData({ ...DEFAULT_DATA })
+      return { ...DEFAULT_DATA }
     }
-    return finalizeData(parsed)
+    const migrated = migrateData(parsed)
+    setData(migrated)
+    return migrated
   } catch {
-    return finalizeData({ ...DEFAULT_DATA })
+    setData({ ...DEFAULT_DATA })
+    return { ...DEFAULT_DATA }
   }
 }

@@ -1,16 +1,19 @@
-export const INCOME_CATEGORIES = ['Salary']
+export const DEFAULT_CATEGORIES = {
+  income: ['Salary'],
+  expense: ['Transport', 'Gas', 'Clothes', 'Food'],
+}
 
-export const EXPENSE_CATEGORIES = ['Transport', 'Gas', 'Clothes', 'Food']
+export function allCategories(categories) {
+  return [...(categories?.income ?? []), ...(categories?.expense ?? [])]
+}
 
-export const ALL_CATEGORIES = [...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES]
-
-export function categoriesForType(type) {
-  if (type === 'income') return INCOME_CATEGORIES
-  if (type === 'expense') return EXPENSE_CATEGORIES
+export function categoriesForType(type, categories) {
+  if (type === 'income') return categories?.income ?? DEFAULT_CATEGORIES.income
+  if (type === 'expense') return categories?.expense ?? DEFAULT_CATEGORIES.expense
   return []
 }
 
-export function defaultCategoryForType(type) {
-  const list = categoriesForType(type)
+export function defaultCategoryForType(type, categories) {
+  const list = categoriesForType(type, categories)
   return list[0] ?? ''
 }

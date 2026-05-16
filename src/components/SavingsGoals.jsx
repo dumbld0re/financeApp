@@ -1,54 +1,111 @@
-import { formatCurrency } from '../utils/calculations'
+import { formatCurrency, isLongTerm } from '../utils/calculations'
 
-function GoalCard({ goal, onAdd, onDelete }) {
-  const progress = goal.targetAmount > 0
+function GoalCard({ goal, onAdd, onDelete, onComplete }) {
+  const longTerm = isLongTerm(goal)
+  const hasTarget = !longTerm && goal.targetAmount > 0
+  const progress = hasTarget
     ? Math.min(100, (goal.currentAmount / goal.targetAmount) * 100)
     : 0
 
   return (
-    <article className="goal-card">
+    <article className={`goal-card ${longTerm ? 'goal-card--long-term' : ''}`}>
       <div className="goal-card-header">
-        <h3 className="goal-name">{goal.name}</h3>
+        <div>
+          <h3 className="goal-name">{goal.name}</h3>
+          {longTerm && <span className="goal-badge">Long-term</span>}
+        </div>
         <p className="goal-progress">
-          {formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}
+          {hasTarget
+            ? `${formatCurrency(goal.currentAmount)} / ${formatCurrency(goal.targetAmount)}`
+            : formatCurrency(goal.currentAmount)}
         </p>
       </div>
-      <div className="progress-bar" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
-        <div className="progress-fill" style={{ width: `${progress}%` }} />
-      </div>
+
+      {hasTarget && (
+        <div className="progress-bar" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+          <div className="progress-fill" style={{ width: `${progress}%` }} />
+        </div>
+      )}
+
       <div className="goal-card-actions">
         <button type="button" className="btn btn-secondary" onClick={() => onAdd(goal.id)}>
           Add
         </button>
+        {!longTerm && goal.currentAmount > 0 && (
+          <button type="button" className="btn btn-complete" onClick={() => onComplete(goal)}>
+            Complete
+          </button>
+        )}
         <button type="button" className="btn btn-ghost-danger" onClick={() => onDelete(goal)}>
-          Delete
+          {longTerm ? 'Remove' : 'Delete'}
         </button>
       </div>
     </article>
   )
 }
 
-export default function SavingsGoals({ goals, onAddToGoal, onCreateGoal, onDeleteGoal }) {
+function GoalSection({ goals, emptyText, onAddToGoal, onDeleteGoal, onCompleteGoal }) {
+  if (goals.length === 0) {
+    return <p className="empty-state">{emptyText}</p>
+  }
+
+  return (
+    <ul className="goal-list">
+      {goals.map((goal) => (
+        <li key={goal.id}>
+          <GoalCard
+            goal={goal}
+            onAdd={onAddToGoal}
+            onDelete={onDeleteGoal}
+            onComplete={onCompleteGoal}
+          />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+export default function SavingsGoals({
+  goals,
+  onAddToGoal,
+  onCreateGoal,
+  onDeleteGoal,
+  onCompleteGoal,
+}) {
+  const active = goals.filter((g) => !g.completedAt)
+  const longTerm = active.filter((g) => isLongTerm(g))
+  const shortGoals = active.filter((g) => !isLongTerm(g))
+
   return (
     <section className="savings-section">
       <div className="section-header">
-        <h2 className="section-title">Savings goals</h2>
+        <h2 className="section-title">Savings</h2>
         <button type="button" className="btn btn-text" onClick={onCreateGoal}>
-          New goal
+          New
         </button>
       </div>
 
-      {goals.length === 0 ? (
-        <p className="empty-state">No savings goals yet. Create one to start tracking.</p>
-      ) : (
-        <ul className="goal-list">
-          {goals.map((goal) => (
-            <li key={goal.id}>
-              <GoalCard goal={goal} onAdd={onAddToGoal} onDelete={onDeleteGoal} />
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="savings-subsection">
+        <h3 className="subsection-title">Long-term</h3>
+        <GoalSection
+          goals={longTerm}
+          emptyText="No long-term savings yet."
+          onAddToGoal={onAddToGoal}
+          onDeleteGoal={onDeleteGoal}
+          onCompleteGoal={onCompleteGoal}
+        />
+      </div>
+
+      <div className="savings-subsection">
+        <h3 className="subsection-title">Goals</h3>
+        <GoalSection
+          goals={shortGoals}
+          emptyText="No goals yet — save for something specific."
+          onAddToGoal={onAddToGoal}
+          onDeleteGoal={onDeleteGoal}
+          onCompleteGoal={onCompleteGoal}
+        />
+      </div>
     </section>
   )
 }

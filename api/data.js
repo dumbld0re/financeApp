@@ -42,10 +42,20 @@ function sanitizePayload(body) {
     savingsGoals: body.savingsGoals.map((g) => ({
       id: String(g.id),
       name: String(g.name),
-      targetAmount: Number(g.targetAmount),
-      currentAmount: Number(g.currentAmount),
+      kind: g.kind === 'long_term' ? 'long_term' : 'goal',
+      targetAmount: Number(g.targetAmount) || 0,
+      currentAmount: Number(g.currentAmount) || 0,
       createdAt: Number(g.createdAt),
+      ...(g.completedAt ? { completedAt: Number(g.completedAt) } : {}),
     })),
+    categories: {
+      income: Array.isArray(body.categories?.income)
+        ? body.categories.income.map(String)
+        : ['Salary'],
+      expense: Array.isArray(body.categories?.expense)
+        ? body.categories.expense.map(String)
+        : ['Transport', 'Gas', 'Clothes', 'Food'],
+    },
     updatedAt: typeof body.updatedAt === 'number' ? body.updatedAt : Date.now(),
   }
 }

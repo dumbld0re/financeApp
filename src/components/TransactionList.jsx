@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { formatCurrency } from '../utils/calculations'
-import { ALL_CATEGORIES } from '../utils/categories'
+import { allCategories } from '../utils/categories'
 
 function getGoalName(goals, goalId) {
   return goals.find((g) => g.id === goalId)?.name ?? 'savings'
@@ -13,7 +13,7 @@ function getLabel(transaction) {
     if (description && category) return `${description} · ${category}`
     return description || category || 'Expense'
   }
-  return description || 'Transfer'
+  return description || 'Transaction'
 }
 
 function TransactionItem({ transaction, goals }) {
@@ -30,12 +30,23 @@ function TransactionItem({ transaction, goals }) {
     )
   }
 
-  if (type === 'expense') {
+  if (type === 'expense' || type === 'goal_complete') {
     return (
       <li className="tx-item tx-expense">
         <span className="tx-prefix">−</span>
         <span className="tx-amount">{formatCurrency(amount)}</span>
         <span className="tx-desc">{label}</span>
+      </li>
+    )
+  }
+
+  if (type === 'savings_release') {
+    const goalName = getGoalName(goals, transaction.goalId)
+    return (
+      <li className="tx-item tx-release">
+        <span className="tx-prefix">↩</span>
+        <span className="tx-amount">{formatCurrency(amount)}</span>
+        <span className="tx-desc">released from {goalName}</span>
       </li>
     )
   }
@@ -50,7 +61,9 @@ function TransactionItem({ transaction, goals }) {
   )
 }
 
-function CategoryFilters({ filterCategory, onSelect }) {
+function CategoryFilters({ categories, filterCategory, onSelect }) {
+  const cats = allCategories(categories)
+
   return (
     <div className="category-filters" role="group" aria-label="Filter by category">
       <button
@@ -61,7 +74,7 @@ function CategoryFilters({ filterCategory, onSelect }) {
       >
         All
       </button>
-      {ALL_CATEGORIES.map((cat) => (
+      {cats.map((cat) => (
         <button
           key={cat}
           type="button"
@@ -76,7 +89,7 @@ function CategoryFilters({ filterCategory, onSelect }) {
   )
 }
 
-export default function TransactionList({ transactions, goals }) {
+export default function TransactionList({ transactions, goals, categories, onManageCategories }) {
   const [filterCategory, setFilterCategory] = useState(null)
 
   function selectCategory(cat) {
@@ -90,20 +103,34 @@ export default function TransactionList({ transactions, goals }) {
       ? sorted
       : sorted.filter((tx) => tx.category === filterCategory)
 
-  if (sorted.length === 0) return null
-
   return (
     <section className="transactions-section">
-      <h2 className="section-title">Timeline</h2>
-      <CategoryFilters filterCategory={filterCategory} onSelect={selectCategory} />
-      {filtered.length === 0 ? (
-        <p className="empty-state">No {filterCategory} transactions yet.</p>
+      <div className="section-header">
+        <h2 className="section-title">Timeline</h2>
+        <button type="button" className="btn btn-text" onClick={onManageCategories}>
+          Categories
+        </button>
+      </div>
+
+      {sorted.length === 0 ? (
+        <p className="empty-state">No transactions yet. Tap + to add one.</p>
       ) : (
-        <ul className="tx-list">
-          {filtered.map((tx) => (
-            <TransactionItem key={tx.id} transaction={tx} goals={goals} />
-          ))}
-        </ul>
+        <>
+          <CategoryFilters
+            categories={categories}
+            filterCategory={filterCategory}
+            onSelect={selectCategory}
+          />
+          {filtered.length === 0 ? (
+            <p className="empty-state">No {filterCategory} transactions yet.</p>
+          ) : (
+            <ul className="tx-list">
+              {filtered.map((tx) => (
+                <TransactionItem key={tx.id} transaction={tx} goals={goals} />
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </section>
   )
