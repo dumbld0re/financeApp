@@ -25,9 +25,12 @@ export function mergeData(local, remote) {
 
 function mapError(status, body) {
   if (status === 401) return 'Secret mismatch — SYNC_SECRET must match VITE_SYNC_SECRET'
-  if (status === 503) return body?.error || 'Redis not connected — add Upstash on Vercel'
+  if (status === 503) {
+    if (body?.detail) return body.detail
+    return body?.error || 'Redis not connected — add Upstash on Vercel'
+  }
   if (status === 404) return 'API not found — redeploy after vercel.json fix'
-  return body?.error || `Sync failed (${status})`
+  return body?.detail || body?.error || `Sync failed (${status})`
 }
 
 export async function checkHealth() {

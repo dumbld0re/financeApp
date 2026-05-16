@@ -1,21 +1,9 @@
-import { Redis } from '@upstash/redis'
-
-const DATA_KEY = 'finance:danny-miguel'
-
-function getRedis() {
-  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
-    return Redis.fromEnv()
-  }
-
-  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-    return new Redis({
-      url: process.env.KV_REST_API_URL,
-      token: process.env.KV_REST_API_TOKEN,
-    })
-  }
-
-  return null
-}
+import {
+  getRedis,
+  loadFinanceData,
+  saveFinanceData,
+  formatRedisError,
+} from '../lib/redis.js'
 
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -40,6 +28,28 @@ function isValidData(data) {
   )
 }
 
+function sanitizePayload(body) {
+  return {
+    transactions: body.transactions.map((t) => ({
+      id: String(t.id),
+      type: t.type,
+      amount: Number(t.amount),
+      description: String(t.description ?? ''),
+      ...(t.category ? { category: String(t.category) } : {}),
+      ...(t.goalId ? { goalId: String(t.goalId) } : {}),
+      date: Number(t.date),
+    })),
+    savingsGoals: body.savingsGoals.map((g) => ({
+      id: String(g.id),
+      name: String(g.name),
+      targetAmount: Number(g.targetAmount),
+      currentAmount: Number(g.currentAmount),
+      createdAt: Number(g.createdAt),
+    })),
+    updatedAt: typeof body.updatedAt === 'number' ? body.updatedAt : Date.now(),
+  }
+}
+
 export async function GET(request) {
   if (!isAuthorized(request)) {
     return jsonResponse({ error: 'Unauthorized' }, 401)
@@ -51,10 +61,13 @@ export async function GET(request) {
   }
 
   try {
-    const data = await redis.get(DATA_KEY)
-    return jsonResponse({ data: data ?? null })
-  } catch {
-    return jsonResponse({ error: 'Redis error' }, 503)
+    const data = await loadFinanceData(redis)
+    return jsonResponse({ data })
+  } catch (err) {
+    return jsonResponse(
+      { error: 'Redis read failed', detail: formatRedisError(err, 'read') },
+      503
+    )
   }
 }
 
@@ -79,16 +92,15 @@ export async function PUT(request) {
     return jsonResponse({ error: 'Invalid data shape' }, 400)
   }
 
-  const payload = {
-    transactions: body.transactions,
-    savingsGoals: body.savingsGoals,
-    updatedAt: typeof body.updatedAt === 'number' ? body.updatedAt : Date.now(),
-  }
+  const payload = sanitizePayload(body)
 
   try {
-    await redis.set(DATA_KEY, payload)
+    await saveFinanceData(redis, payload)
     return jsonResponse({ ok: true, updatedAt: payload.updatedAt })
-  } catch {
-    return jsonResponse({ error: 'Redis error' }, 503)
+  } catch (err) {
+    return jsonResponse(
+      { error: 'Redis write failed', detail: formatRedisError(err, 'write') },
+      503
+    )
   }
 }
