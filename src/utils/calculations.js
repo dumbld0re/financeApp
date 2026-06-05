@@ -35,6 +35,41 @@ export function formatCurrency(amount) {
   }).format(amount)
 }
 
+export function formatDateLabel(timestamp) {
+  const date = new Date(timestamp)
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const diffDays = Math.round((startOfToday - startOfDate) / 86400000)
+
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Yesterday'
+
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    ...(date.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : {}),
+  })
+}
+
+export function groupTransactionsByDate(transactions) {
+  const groups = []
+
+  for (const tx of transactions) {
+    const key = new Date(tx.date || 0).toDateString()
+    const last = groups[groups.length - 1]
+
+    if (last && new Date(last.date).toDateString() === key) {
+      last.items.push(tx)
+    } else {
+      groups.push({ date: tx.date || 0, items: [tx] })
+    }
+  }
+
+  return groups
+}
+
 export function generateId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 }

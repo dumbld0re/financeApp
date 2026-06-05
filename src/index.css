@@ -221,6 +221,26 @@ body {
   color: var(--text);
 }
 
+.tx-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tx-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tx-date-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .tx-list {
   list-style: none;
   display: flex;
@@ -307,6 +327,31 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.tx-item--editable {
+  padding: 0;
+}
+
+.tx-item-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  background: none;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  border-radius: var(--radius);
+}
+
+.tx-item-btn:hover {
+  background: #f0faf4;
 }
 
 /* Buttons */

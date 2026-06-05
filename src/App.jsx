@@ -23,6 +23,7 @@ import TransactionModal from './components/TransactionModal'
 import GoalModal from './components/GoalModal'
 import ConfirmModal from './components/ConfirmModal'
 import CategoriesModal from './components/CategoriesModal'
+import EditIncomeModal from './components/EditIncomeModal'
 
 export default function App() {
   const [data, setDataState] = useState(() => initializeDataIfEmpty())
@@ -32,6 +33,7 @@ export default function App() {
   const [addToGoalId, setAddToGoalId] = useState(null)
   const [goalToDelete, setGoalToDelete] = useState(null)
   const [goalToComplete, setGoalToComplete] = useState(null)
+  const [incomeToEdit, setIncomeToEdit] = useState(null)
   const [syncStatus, setSyncStatus] = useState(isSyncEnabled() ? 'syncing' : 'local')
   const [syncMessage, setSyncMessage] = useState(getSyncSetupHint())
   const skipCloudPush = useRef(true)
@@ -232,6 +234,17 @@ export default function App() {
     setGoalToComplete(null)
   }
 
+  function handleUpdateIncomeCategory(transactionId, category) {
+    persist({
+      ...data,
+      transactions: data.transactions.map((t) =>
+        t.id === transactionId && t.type === 'income'
+          ? { ...t, category, description: category }
+          : t
+      ),
+    })
+  }
+
   function handleAddCategory(type, name) {
     const list = data.categories[type]
     if (list.includes(name)) return
@@ -285,6 +298,7 @@ export default function App() {
           goals={data.savingsGoals}
           categories={data.categories}
           onManageCategories={() => setCategoriesModalOpen(true)}
+          onEditIncome={setIncomeToEdit}
         />
       </main>
 
@@ -317,6 +331,15 @@ export default function App() {
         <GoalModal
           onClose={() => setGoalModalOpen(false)}
           onSubmit={handleCreateGoal}
+        />
+      )}
+
+      {incomeToEdit && (
+        <EditIncomeModal
+          transaction={incomeToEdit}
+          categories={data.categories}
+          onClose={() => setIncomeToEdit(null)}
+          onSubmit={handleUpdateIncomeCategory}
         />
       )}
 

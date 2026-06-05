@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { formatCurrency } from '../utils/calculations'
+import { formatCurrency, formatDateLabel, groupTransactionsByDate } from '../utils/calculations'
 import { allCategories } from '../utils/categories'
 
 function getGoalName(goals, goalId) {
@@ -16,16 +16,23 @@ function getLabel(transaction) {
   return description || 'Transaction'
 }
 
-function TransactionItem({ transaction, goals }) {
+function TransactionItem({ transaction, goals, onEditIncome }) {
   const { type, amount } = transaction
   const label = getLabel(transaction)
 
   if (type === 'income') {
     return (
-      <li className="tx-item tx-income">
-        <span className="tx-prefix">+</span>
-        <span className="tx-amount">{formatCurrency(amount)}</span>
-        <span className="tx-desc">{label}</span>
+      <li className="tx-item tx-income tx-item--editable">
+        <button
+          type="button"
+          className="tx-item-btn"
+          onClick={() => onEditIncome(transaction)}
+          aria-label={`Edit income type for ${label}`}
+        >
+          <span className="tx-prefix">+</span>
+          <span className="tx-amount">{formatCurrency(amount)}</span>
+          <span className="tx-desc">{label}</span>
+        </button>
       </li>
     )
   }
@@ -89,19 +96,27 @@ function CategoryFilters({ categories, filterCategory, onSelect }) {
   )
 }
 
-export default function TransactionList({ transactions, goals, categories, onManageCategories }) {
+export default function TransactionList({
+  transactions,
+  goals,
+  categories,
+  onManageCategories,
+  onEditIncome,
+}) {
   const [filterCategory, setFilterCategory] = useState(null)
 
   function selectCategory(cat) {
     setFilterCategory((prev) => (prev === cat ? null : cat))
   }
 
-  const sorted = [...transactions].sort((a, b) => b.date - a.date)
+  const sorted = [...transactions].sort((a, b) => (b.date || 0) - (a.date || 0))
 
   const filtered =
     filterCategory === null
       ? sorted
       : sorted.filter((tx) => tx.category === filterCategory)
+
+  const groups = groupTransactionsByDate(filtered)
 
   return (
     <section className="transactions-section">
@@ -124,11 +139,23 @@ export default function TransactionList({ transactions, goals, categories, onMan
           {filtered.length === 0 ? (
             <p className="empty-state">No {filterCategory} transactions yet.</p>
           ) : (
-            <ul className="tx-list">
-              {filtered.map((tx) => (
-                <TransactionItem key={tx.id} transaction={tx} goals={goals} />
+            <div className="tx-groups">
+              {groups.map((group) => (
+                <div key={group.date} className="tx-group">
+                  <h3 className="tx-date-label">{formatDateLabel(group.date)}</h3>
+                  <ul className="tx-list">
+                    {group.items.map((tx) => (
+                      <TransactionItem
+                        key={tx.id}
+                        transaction={tx}
+                        goals={goals}
+                        onEditIncome={onEditIncome}
+                      />
+                    ))}
+                  </ul>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </>
       )}
