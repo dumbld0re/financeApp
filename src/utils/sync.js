@@ -9,7 +9,7 @@ export function isSyncEnabled() {
 }
 
 export function getSyncSetupHint() {
-  if (!import.meta.env.VITE_SYNC_SECRET) {
+  if (import.meta.env.DEV && !import.meta.env.VITE_SYNC_SECRET) {
     return 'Add VITE_SYNC_SECRET on Vercel, then redeploy'
   }
   return null
