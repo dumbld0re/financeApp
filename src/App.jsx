@@ -18,11 +18,14 @@ import {
   generateId,
   roundToCents,
 } from './utils/calculations'
+import { applyRecurring } from './utils/recurring'
 import BalanceHeader from './components/BalanceHeader'
 import MonthlySummary from './components/MonthlySummary'
 import SavingsGoals from './components/SavingsGoals'
 import WithdrawModal from './components/WithdrawModal'
 import BulkAddModal from './components/BulkAddModal'
+import RecurringSection from './components/RecurringSection'
+import RecurringModal from './components/RecurringModal'
 import TransactionList from './components/TransactionList'
 import TransactionModal from './components/TransactionModal'
 import GoalModal from './components/GoalModal'
@@ -36,6 +39,9 @@ export default function App() {
   const [goalModalOpen, setGoalModalOpen] = useState(false)
   const [categoriesModalOpen, setCategoriesModalOpen] = useState(false)
   const [bulkAddOpen, setBulkAddOpen] = useState(false)
+  const [recurringModalOpen, setRecurringModalOpen] = useState(false)
+  const [recurringToEdit, setRecurringToEdit] = useState(null)
+  const [recurringToDelete, setRecurringToDelete] = useState(null)
   const [addToGoalId, setAddToGoalId] = useState(null)
   const [goalToDelete, setGoalToDelete] = useState(null)
   const [goalToComplete, setGoalToComplete] = useState(null)
@@ -150,6 +156,16 @@ export default function App() {
     return () => clearTimeout(timer)
   }, [data, syncEnabled])
 
+  // Post any recurring items that have come due. applyRecurring returns null
+  // once caught up, so this settles after at most one persist per due date.
+  useEffect(() => {
+    const result = applyRecurring(data)
+    if (result) {
+      persist({ ...data, ...result })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.recurring, data.transactions.length])
+
   function handleSaveSyncSecret(secret) {
     setClientSecret(secret)
     setSyncSecretState(secret)
@@ -188,6 +204,36 @@ export default function App() {
   function handleBulkAdd(transactions) {
     if (!transactions.length) return
     persist({ ...data, transactions: [...transactions, ...data.transactions] })
+  }
+
+  function handleSaveRecurring(rule) {
+    const rules = data.recurring || []
+    const exists = rules.some((r) => r.id === rule.id)
+    persist({
+      ...data,
+      recurring: exists ? rules.map((r) => (r.id === rule.id ? rule : r)) : [...rules, rule],
+    })
+    setRecurringModalOpen(false)
+    setRecurringToEdit(null)
+  }
+
+  function handleConfirmDeleteRecurring() {
+    if (!recurringToDelete) return
+    persist({
+      ...data,
+      recurring: (data.recurring || []).filter((r) => r.id !== recurringToDelete.id),
+    })
+    setRecurringToDelete(null)
+  }
+
+  function openNewRecurring() {
+    setRecurringToEdit(null)
+    setRecurringModalOpen(true)
+  }
+
+  function openEditRecurring(rule) {
+    setRecurringToEdit(rule)
+    setRecurringModalOpen(true)
   }
 
   function handleCreateGoal({ name, targetAmount, kind }) {
@@ -428,6 +474,13 @@ export default function App() {
           onCompleteGoal={setGoalToComplete}
         />
 
+        <RecurringSection
+          rules={data.recurring || []}
+          onCreate={openNewRecurring}
+          onEdit={openEditRecurring}
+          onDelete={setRecurringToDelete}
+        />
+
         <MonthlySummary transactions={data.transactions} />
 
         <TransactionList
@@ -515,6 +568,28 @@ export default function App() {
           categories={data.categories}
           onClose={() => setBulkAddOpen(false)}
           onSubmit={handleBulkAdd}
+        />
+      )}
+
+      {recurringModalOpen && (
+        <RecurringModal
+          rule={recurringToEdit}
+          categories={data.categories}
+          onClose={() => {
+            setRecurringModalOpen(false)
+            setRecurringToEdit(null)
+          }}
+          onSubmit={handleSaveRecurring}
+        />
+      )}
+
+      {recurringToDelete && (
+        <ConfirmModal
+          title="Delete recurring item?"
+          message={`Stop auto-posting "${recurringToDelete.description}"? Transactions already posted stay in your timeline.`}
+          confirmLabel="Delete"
+          onClose={() => setRecurringToDelete(null)}
+          onConfirm={handleConfirmDeleteRecurring}
         />
       )}
 

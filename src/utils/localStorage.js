@@ -6,6 +6,7 @@ const STORAGE_KEY = 'finance_data'
 export const DEFAULT_DATA = {
   transactions: [],
   savingsGoals: [],
+  recurring: [],
   categories: { ...DEFAULT_CATEGORIES },
 }
 

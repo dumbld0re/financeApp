@@ -12,6 +12,10 @@ A personal finance web app for tracking income, expenses, and savings goals. Dat
 - **Goal lifecycle** — Add funds to goals, withdraw part of a goal's balance, mark goals as complete (recorded as spent), or delete goals (funds return to spendable balance)
 - **Monthly summary** — Per-month income, spending, and savings totals with a category breakdown and month navigation
 - **Overspend warning** — A gentle warning (not a block) when an expense or transfer exceeds your spendable balance
+- **Bulk add** — Paste multiple transactions in shorthand (sign, amount, description, optional date, `@Category`) with a live preview
+- **Recurring** — Auto-post rent, salary, or subscriptions on a weekly or monthly schedule when they come due
+- **Timeline search** — Filter the timeline by description, category, or goal name
+- **Installable PWA** — Add to your home screen and use it offline (app shell cached via a service worker)
 - **Categories** — Customizable income and expense categories
 - **Transaction history** — Grouped by date with labels like Today and Yesterday
 - **Cloud sync** — Optional sync across devices when deployed to Vercel with Redis configured

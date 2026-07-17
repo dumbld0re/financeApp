@@ -102,11 +102,28 @@ export function mergeData(local, remote) {
     changed = true
   }
 
+  // recurring rules: union by id; on conflict keep the most-advanced nextDue
+  // so an occurrence already posted on one device isn't re-posted on the other
+  const recurringById = new Map((remote.recurring || []).map((r) => [r.id, r]))
+  for (const lr of local.recurring || []) {
+    const rr = recurringById.get(lr.id)
+    if (!rr) {
+      recurringById.set(lr.id, lr)
+      changed = true
+    } else if ((lr.nextDue || 0) > (rr.nextDue || 0)) {
+      recurringById.set(lr.id, lr)
+      changed = true
+    }
+  }
+  const recurring = [...recurringById.values()]
+  if (recurring.length !== (remote.recurring?.length ?? 0)) changed = true
+
   if (!changed) return remote
 
   return {
     transactions,
     savingsGoals,
+    recurring,
     categories: { income, expense },
     updatedAt: Math.max(local.updatedAt || 0, remote.updatedAt || 0),
   }

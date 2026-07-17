@@ -10,7 +10,7 @@ function getLabel(transaction) {
   const { type, description, category } = transaction
   if (type === 'income') return category || description || 'Income'
   if (type === 'expense') {
-    if (description && category) return `${description} · ${category}`
+    if (description && category && description !== category) return `${description} · ${category}`
     return description || category || 'Expense'
   }
   return description || 'Transaction'
@@ -103,6 +103,7 @@ export default function TransactionList({
   onEditTransaction,
 }) {
   const [filterCategory, setFilterCategory] = useState(null)
+  const [query, setQuery] = useState('')
 
   function selectCategory(cat) {
     setFilterCategory((prev) => (prev === cat ? null : cat))
@@ -110,10 +111,14 @@ export default function TransactionList({
 
   const sorted = [...transactions].sort((a, b) => (b.date || 0) - (a.date || 0))
 
-  const filtered =
-    filterCategory === null
-      ? sorted
-      : sorted.filter((tx) => tx.category === filterCategory)
+  const q = query.trim().toLowerCase()
+  const filtered = sorted.filter((tx) => {
+    if (filterCategory !== null && tx.category !== filterCategory) return false
+    if (!q) return true
+    const goalName = tx.goalId ? getGoalName(goals, tx.goalId) : ''
+    const haystack = `${tx.description || ''} ${tx.category || ''} ${goalName}`.toLowerCase()
+    return haystack.includes(q)
+  })
 
   const groups = groupTransactionsByDate(filtered)
 
@@ -137,13 +142,23 @@ export default function TransactionList({
         </p>
       ) : (
         <>
+          <input
+            type="search"
+            className="tx-search"
+            placeholder="Search transactions…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Search transactions"
+          />
           <CategoryFilters
             categories={categories}
             filterCategory={filterCategory}
             onSelect={selectCategory}
           />
           {filtered.length === 0 ? (
-            <p className="empty-state">No {filterCategory} transactions yet.</p>
+            <p className="empty-state">
+              {q ? `No matches for "${query.trim()}".` : `No ${filterCategory} transactions yet.`}
+            </p>
           ) : (
             <div className="tx-groups">
               {groups.map((group) => (

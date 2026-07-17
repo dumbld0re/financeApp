@@ -1,4 +1,5 @@
 import { DEFAULT_CATEGORIES } from './categories'
+import { normalizeRule } from './recurring'
 
 const DEMO_PREFIX = 'demo-'
 
@@ -41,10 +42,14 @@ export function migrateData(data) {
   }
 
   const savingsGoals = stripped.savingsGoals.map(normalizeGoal)
+  const recurring = Array.isArray(data.recurring)
+    ? data.recurring.map(normalizeRule)
+    : []
 
   return {
     transactions: stripped.transactions,
     savingsGoals,
+    recurring,
     categories,
     ...(data.updatedAt ? { updatedAt: data.updatedAt } : {}),
   }

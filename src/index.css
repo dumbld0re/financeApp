@@ -89,6 +89,83 @@ body {
 .section-header-actions {
   display: flex;
   gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Recurring */
+.recurring-section {
+  margin-bottom: 32px;
+}
+
+.recurring-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recurring-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px 14px;
+}
+
+.recurring-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+  min-width: 0;
+}
+
+.recurring-amount {
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+.recurring-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.recurring-desc {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recurring-schedule {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Timeline search */
+.tx-search {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9375rem;
+}
+
+.tx-search:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .bulk-input {

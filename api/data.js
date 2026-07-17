@@ -48,6 +48,19 @@ function sanitizePayload(body) {
       createdAt: Number(g.createdAt) || Date.now(),
       ...(g.completedAt ? { completedAt: Number(g.completedAt) } : {}),
     })),
+    recurring: Array.isArray(body.recurring)
+      ? body.recurring.map((r) => ({
+          id: String(r.id),
+          type: r.type === 'income' ? 'income' : 'expense',
+          amount: Number(r.amount) || 0,
+          description: String(r.description ?? ''),
+          category: String(r.category ?? ''),
+          cadence: r.cadence === 'weekly' ? 'weekly' : 'monthly',
+          anchorDay: Number(r.anchorDay) || 1,
+          nextDue: Number(r.nextDue) || Date.now(),
+          createdAt: Number(r.createdAt) || Date.now(),
+        }))
+      : [],
     categories: {
       income: Array.isArray(body.categories?.income)
         ? body.categories.income.map(String)
