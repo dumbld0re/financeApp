@@ -85,6 +85,122 @@ body {
   margin-top: 16px;
 }
 
+/* Monthly summary */
+.summary-section {
+  margin-bottom: 32px;
+}
+
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.month-nav-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 110px;
+  text-align: center;
+}
+
+.month-nav-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 4px 10px;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.month-nav-btn:disabled {
+  color: var(--border);
+  cursor: default;
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.summary-stat {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: center;
+}
+
+.summary-stat-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.summary-stat-value {
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.summary-stat--income {
+  color: var(--income);
+}
+
+.summary-stat--expense {
+  color: var(--expense);
+}
+
+.summary-stat--saved {
+  color: var(--transfer);
+}
+
+.summary-net {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.summary-cats {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.summary-cat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  margin-bottom: 4px;
+}
+
+.summary-cat-row span:last-child {
+  color: var(--text-muted);
+}
+
+.summary-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.summary-bar-fill {
+  height: 100%;
+  background: var(--expense);
+  opacity: 0.75;
+  border-radius: 3px;
+}
+
 .sync-detail {
   margin-top: 6px;
   font-size: 0.8125rem;
@@ -678,6 +794,12 @@ body {
 
 .field-error {
   color: var(--expense);
+  font-size: 0.875rem;
+  margin-bottom: 12px;
+}
+
+.field-warning {
+  color: #9a6700;
   font-size: 0.875rem;
   margin-bottom: 12px;
 }

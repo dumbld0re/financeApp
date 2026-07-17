@@ -1,6 +1,6 @@
 import { formatCurrency, isLongTerm } from '../utils/calculations'
 
-function GoalCard({ goal, onAdd, onDelete, onComplete }) {
+function GoalCard({ goal, onAdd, onWithdraw, onDelete, onComplete }) {
   const longTerm = isLongTerm(goal)
   const hasTarget = !longTerm && goal.targetAmount > 0
   const progress = hasTarget
@@ -31,6 +31,11 @@ function GoalCard({ goal, onAdd, onDelete, onComplete }) {
         <button type="button" className="btn btn-secondary" onClick={() => onAdd(goal.id)}>
           Add
         </button>
+        {goal.currentAmount > 0 && (
+          <button type="button" className="btn btn-secondary" onClick={() => onWithdraw(goal)}>
+            Withdraw
+          </button>
+        )}
         {!longTerm && goal.currentAmount > 0 && (
           <button type="button" className="btn btn-complete" onClick={() => onComplete(goal)}>
             Complete
@@ -44,7 +49,7 @@ function GoalCard({ goal, onAdd, onDelete, onComplete }) {
   )
 }
 
-function GoalSection({ goals, emptyText, onAddToGoal, onDeleteGoal, onCompleteGoal }) {
+function GoalSection({ goals, emptyText, onAddToGoal, onWithdrawGoal, onDeleteGoal, onCompleteGoal }) {
   if (goals.length === 0) {
     return <p className="empty-state">{emptyText}</p>
   }
@@ -56,6 +61,7 @@ function GoalSection({ goals, emptyText, onAddToGoal, onDeleteGoal, onCompleteGo
           <GoalCard
             goal={goal}
             onAdd={onAddToGoal}
+            onWithdraw={onWithdrawGoal}
             onDelete={onDeleteGoal}
             onComplete={onCompleteGoal}
           />
@@ -68,6 +74,7 @@ function GoalSection({ goals, emptyText, onAddToGoal, onDeleteGoal, onCompleteGo
 export default function SavingsGoals({
   goals,
   onAddToGoal,
+  onWithdrawGoal,
   onCreateGoal,
   onDeleteGoal,
   onCompleteGoal,
@@ -91,6 +98,7 @@ export default function SavingsGoals({
           goals={longTerm}
           emptyText="No long-term savings yet."
           onAddToGoal={onAddToGoal}
+          onWithdrawGoal={onWithdrawGoal}
           onDeleteGoal={onDeleteGoal}
           onCompleteGoal={onCompleteGoal}
         />
@@ -102,6 +110,7 @@ export default function SavingsGoals({
           goals={shortGoals}
           emptyText="No goals yet — save for something specific."
           onAddToGoal={onAddToGoal}
+          onWithdrawGoal={onWithdrawGoal}
           onDeleteGoal={onDeleteGoal}
           onCompleteGoal={onCompleteGoal}
         />

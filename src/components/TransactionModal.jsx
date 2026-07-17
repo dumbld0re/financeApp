@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  formatCurrency,
   generateId,
   getActiveGoals,
   roundToCents,
@@ -19,6 +20,7 @@ export default function TransactionModal({
   categories,
   preselectedGoalId,
   transaction,
+  netBalance,
   onClose,
   onSubmit,
   onDelete,
@@ -43,6 +45,8 @@ export default function TransactionModal({
     toDateInputValue(editing ? transaction.date : Date.now())
   )
   const [error, setError] = useState('')
+  const [warning, setWarning] = useState('')
+  const [overspendAck, setOverspendAck] = useState(false)
 
   function selectType(selected) {
     setType(selected)
@@ -93,6 +97,22 @@ export default function TransactionModal({
     if (type === 'savings_transfer') {
       if (!goalId) {
         setError('Select where to save')
+        return
+      }
+    }
+
+    // warn (once) when spending more than the spendable balance
+    if ((type === 'expense' || type === 'savings_transfer') && !overspendAck) {
+      const refund =
+        editing && (transaction.type === 'expense' || transaction.type === 'savings_transfer')
+          ? transaction.amount
+          : 0
+      const available = roundToCents((netBalance ?? 0) + refund)
+      if (parsedAmount > available) {
+        setOverspendAck(true)
+        setWarning(
+          `This exceeds your spendable balance (${formatCurrency(available)} available). Tap Save again to record it anyway.`
+        )
         return
       }
     }
@@ -209,7 +229,11 @@ export default function TransactionModal({
                 step="0.01"
                 placeholder="0.00"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => {
+                  setAmount(e.target.value)
+                  setOverspendAck(false)
+                  setWarning('')
+                }}
                 required
                 autoFocus
               />
@@ -276,6 +300,7 @@ export default function TransactionModal({
             )}
 
             {error && <p className="field-error">{error}</p>}
+            {warning && <p className="field-warning">{warning}</p>}
 
             <button type="submit" className="btn btn-primary btn-full">
               Save

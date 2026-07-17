@@ -81,6 +81,46 @@ export function groupTransactionsByDate(transactions) {
   return groups
 }
 
+export function computeMonthSummary(transactions, year, month) {
+  let income = 0
+  let spent = 0
+  let saved = 0
+  const spentByCategory = new Map()
+
+  for (const t of transactions) {
+    const d = new Date(t.date || 0)
+    if (d.getFullYear() !== year || d.getMonth() !== month) continue
+
+    if (t.type === 'income') {
+      income += t.amount
+    } else if (t.type === 'expense') {
+      spent += t.amount
+      const cat = t.category || 'Other'
+      spentByCategory.set(cat, (spentByCategory.get(cat) || 0) + t.amount)
+    } else if (t.type === 'goal_complete') {
+      spent += t.amount
+      spentByCategory.set(
+        'Goal purchases',
+        (spentByCategory.get('Goal purchases') || 0) + t.amount
+      )
+    } else if (t.type === 'savings_transfer') {
+      saved += t.amount
+    }
+  }
+
+  const categories = [...spentByCategory.entries()]
+    .map(([name, amount]) => ({ name, amount: roundToCents(amount) }))
+    .sort((a, b) => b.amount - a.amount)
+
+  return {
+    income: roundToCents(income),
+    spent: roundToCents(spent),
+    saved: roundToCents(saved),
+    net: roundToCents(income - spent),
+    categories,
+  }
+}
+
 export function toDateInputValue(timestamp) {
   const d = new Date(timestamp)
   const pad = (n) => String(n).padStart(2, '0')

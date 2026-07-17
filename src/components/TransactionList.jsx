@@ -54,11 +54,14 @@ function TransactionItem({ transaction, goals, onEditTransaction }) {
   }
 
   const goalName = getGoalName(goals, transaction.goalId)
+  const releaseWord = type === 'savings_withdrawal' ? 'withdrawn from' : 'released from'
   return (
     <li className="tx-item tx-release">
       <span className="tx-prefix">↩</span>
       <span className="tx-amount">{formatCurrency(amount)}</span>
-      <span className="tx-desc">released from {goalName}</span>
+      <span className="tx-desc">
+        {releaseWord} {goalName}
+      </span>
     </li>
   )
 }

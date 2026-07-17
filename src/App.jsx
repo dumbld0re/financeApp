@@ -19,7 +19,9 @@ import {
   roundToCents,
 } from './utils/calculations'
 import BalanceHeader from './components/BalanceHeader'
+import MonthlySummary from './components/MonthlySummary'
 import SavingsGoals from './components/SavingsGoals'
+import WithdrawModal from './components/WithdrawModal'
 import TransactionList from './components/TransactionList'
 import TransactionModal from './components/TransactionModal'
 import GoalModal from './components/GoalModal'
@@ -35,6 +37,7 @@ export default function App() {
   const [addToGoalId, setAddToGoalId] = useState(null)
   const [goalToDelete, setGoalToDelete] = useState(null)
   const [goalToComplete, setGoalToComplete] = useState(null)
+  const [goalToWithdraw, setGoalToWithdraw] = useState(null)
   const [transactionToEdit, setTransactionToEdit] = useState(null)
   const [transactionToDelete, setTransactionToDelete] = useState(null)
   const [syncModalOpen, setSyncModalOpen] = useState(false)
@@ -259,6 +262,25 @@ export default function App() {
     )
   }
 
+  function handleWithdrawFromGoal(goal, amount) {
+    persist({
+      ...data,
+      transactions: [
+        {
+          id: generateId(),
+          type: 'savings_withdrawal',
+          amount,
+          description: `Withdrawn from ${goal.name}`,
+          goalId: goal.id,
+          date: Date.now(),
+        },
+        ...data.transactions,
+      ],
+      savingsGoals: adjustGoalAmount(data.savingsGoals, goal.id, -amount),
+    })
+    setGoalToWithdraw(null)
+  }
+
   function handleUpdateTransaction(updated) {
     const prev = data.transactions.find((t) => t.id === updated.id)
     if (!prev) return
@@ -393,10 +415,13 @@ export default function App() {
         <SavingsGoals
           goals={data.savingsGoals}
           onAddToGoal={openAddToGoal}
+          onWithdrawGoal={setGoalToWithdraw}
           onCreateGoal={() => setGoalModalOpen(true)}
           onDeleteGoal={setGoalToDelete}
           onCompleteGoal={setGoalToComplete}
         />
+
+        <MonthlySummary transactions={data.transactions} />
 
         <TransactionList
           transactions={data.transactions}
@@ -424,6 +449,7 @@ export default function App() {
           goals={data.savingsGoals}
           categories={data.categories}
           preselectedGoalId={addToGoalId}
+          netBalance={netBalance}
           onClose={() => {
             setTransactionModalOpen(false)
             setAddToGoalId(null)
@@ -444,6 +470,7 @@ export default function App() {
           transaction={transactionToEdit}
           goals={data.savingsGoals}
           categories={data.categories}
+          netBalance={netBalance}
           onClose={() => setTransactionToEdit(null)}
           onSubmit={handleUpdateTransaction}
           onDelete={requestDeleteTransaction}
@@ -481,6 +508,14 @@ export default function App() {
           onClose={() => setCategoriesModalOpen(false)}
           onAdd={handleAddCategory}
           onRemove={handleRemoveCategory}
+        />
+      )}
+
+      {goalToWithdraw && (
+        <WithdrawModal
+          goal={goalToWithdraw}
+          onClose={() => setGoalToWithdraw(null)}
+          onSubmit={handleWithdrawFromGoal}
         />
       )}
 
