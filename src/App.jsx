@@ -22,6 +22,7 @@ import BalanceHeader from './components/BalanceHeader'
 import MonthlySummary from './components/MonthlySummary'
 import SavingsGoals from './components/SavingsGoals'
 import WithdrawModal from './components/WithdrawModal'
+import BulkAddModal from './components/BulkAddModal'
 import TransactionList from './components/TransactionList'
 import TransactionModal from './components/TransactionModal'
 import GoalModal from './components/GoalModal'
@@ -34,6 +35,7 @@ export default function App() {
   const [transactionModalOpen, setTransactionModalOpen] = useState(false)
   const [goalModalOpen, setGoalModalOpen] = useState(false)
   const [categoriesModalOpen, setCategoriesModalOpen] = useState(false)
+  const [bulkAddOpen, setBulkAddOpen] = useState(false)
   const [addToGoalId, setAddToGoalId] = useState(null)
   const [goalToDelete, setGoalToDelete] = useState(null)
   const [goalToComplete, setGoalToComplete] = useState(null)
@@ -181,6 +183,11 @@ export default function App() {
     }
 
     persist(next)
+  }
+
+  function handleBulkAdd(transactions) {
+    if (!transactions.length) return
+    persist({ ...data, transactions: [...transactions, ...data.transactions] })
   }
 
   function handleCreateGoal({ name, targetAmount, kind }) {
@@ -428,6 +435,7 @@ export default function App() {
           goals={data.savingsGoals}
           categories={data.categories}
           onManageCategories={() => setCategoriesModalOpen(true)}
+          onBulkAdd={() => setBulkAddOpen(true)}
           onEditTransaction={setTransactionToEdit}
         />
       </main>
@@ -499,6 +507,14 @@ export default function App() {
           onDisable={handleDisableSync}
           onExport={handleExport}
           onImport={handleImport}
+        />
+      )}
+
+      {bulkAddOpen && (
+        <BulkAddModal
+          categories={data.categories}
+          onClose={() => setBulkAddOpen(false)}
+          onSubmit={handleBulkAdd}
         />
       )}
 

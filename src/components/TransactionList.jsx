@@ -99,6 +99,7 @@ export default function TransactionList({
   goals,
   categories,
   onManageCategories,
+  onBulkAdd,
   onEditTransaction,
 }) {
   const [filterCategory, setFilterCategory] = useState(null)
@@ -120,13 +121,20 @@ export default function TransactionList({
     <section className="transactions-section">
       <div className="section-header">
         <h2 className="section-title">Timeline</h2>
-        <button type="button" className="btn btn-text" onClick={onManageCategories}>
-          Categories
-        </button>
+        <div className="section-header-actions">
+          <button type="button" className="btn btn-text" onClick={onBulkAdd}>
+            Bulk add
+          </button>
+          <button type="button" className="btn btn-text" onClick={onManageCategories}>
+            Categories
+          </button>
+        </div>
       </div>
 
       {sorted.length === 0 ? (
-        <p className="empty-state">No transactions yet. Tap + to add one.</p>
+        <p className="empty-state">
+          No transactions yet. Tap + to add one, or use Bulk add to paste several.
+        </p>
       ) : (
         <>
           <CategoryFilters
