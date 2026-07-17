@@ -1,30 +1,119 @@
+const SECRET_STORAGE_KEY = 'finance_sync_secret'
+
+export function getClientSecret() {
+  try {
+    return localStorage.getItem(SECRET_STORAGE_KEY) || ''
+  } catch {
+    return ''
+  }
+}
+
+export function setClientSecret(secret) {
+  try {
+    if (secret) {
+      localStorage.setItem(SECRET_STORAGE_KEY, secret)
+    } else {
+      localStorage.removeItem(SECRET_STORAGE_KEY)
+    }
+  } catch {
+    // ignore quota / private mode errors
+  }
+}
+
 function authHeaders() {
-  const secret = import.meta.env.VITE_SYNC_SECRET
+  const secret = getClientSecret()
   if (!secret) return null
   return { Authorization: `Bearer ${secret}` }
 }
 
-export function isSyncEnabled() {
-  return Boolean(import.meta.env.VITE_SYNC_SECRET)
+function goalsEqual(a, b) {
+  return (
+    a.name === b.name &&
+    a.kind === b.kind &&
+    a.targetAmount === b.targetAmount &&
+    a.currentAmount === b.currentAmount &&
+    a.createdAt === b.createdAt &&
+    (a.completedAt || 0) === (b.completedAt || 0)
+  )
 }
 
-export function getSyncSetupHint() {
-  if (import.meta.env.DEV && !import.meta.env.VITE_SYNC_SECRET) {
-    return 'Add VITE_SYNC_SECRET on Vercel, then redeploy'
+function unionCategories(remoteList, localList) {
+  const merged = [...remoteList]
+  for (const c of localList) {
+    if (!merged.includes(c)) merged.push(c)
   }
-  return null
+  return merged
 }
 
+// True additive merge. Returns the `remote` object (same reference) when local
+// contributes nothing beyond it, so callers can detect "already in sync" by
+// reference; otherwise returns a fresh merged object that needs pushing.
 export function mergeData(local, remote) {
   if (!remote) return local
   if (!local) return remote
-  const localTs = local.updatedAt || 0
-  const remoteTs = remote.updatedAt || 0
-  return remoteTs > localTs ? remote : local
+
+  let changed = false
+
+  const txById = new Map(remote.transactions.map((t) => [t.id, t]))
+  for (const t of local.transactions) {
+    if (!txById.has(t.id)) {
+      txById.set(t.id, t)
+      changed = true
+    }
+  }
+  const transactions = [...txById.values()].sort((a, b) => (b.date || 0) - (a.date || 0))
+
+  // A savings_release transaction is only ever created when a goal is deleted,
+  // so its presence means that goal was removed on some device.
+  const releasedGoalIds = new Set(
+    transactions.filter((t) => t.type === 'savings_release' && t.goalId).map((t) => t.goalId)
+  )
+
+  const localNewer = (local.updatedAt || 0) > (remote.updatedAt || 0)
+  const localGoalById = new Map(local.savingsGoals.map((g) => [g.id, g]))
+  const remoteGoalIds = new Set(remote.savingsGoals.map((g) => g.id))
+  const savingsGoals = []
+
+  for (const rg of remote.savingsGoals) {
+    if (releasedGoalIds.has(rg.id)) {
+      changed = true
+      continue
+    }
+    const lg = localGoalById.get(rg.id)
+    if (lg && localNewer && !goalsEqual(lg, rg)) {
+      savingsGoals.push(lg)
+      changed = true
+    } else {
+      savingsGoals.push(rg)
+    }
+  }
+  for (const lg of local.savingsGoals) {
+    if (remoteGoalIds.has(lg.id) || releasedGoalIds.has(lg.id)) continue
+    savingsGoals.push(lg)
+    changed = true
+  }
+
+  const income = unionCategories(remote.categories?.income ?? [], local.categories?.income ?? [])
+  const expense = unionCategories(remote.categories?.expense ?? [], local.categories?.expense ?? [])
+  if (
+    income.length !== (remote.categories?.income?.length ?? 0) ||
+    expense.length !== (remote.categories?.expense?.length ?? 0)
+  ) {
+    changed = true
+  }
+
+  if (!changed) return remote
+
+  return {
+    transactions,
+    savingsGoals,
+    categories: { income, expense },
+    updatedAt: Math.max(local.updatedAt || 0, remote.updatedAt || 0),
+  }
 }
 
 function mapError(status, body) {
-  if (status === 401) return 'Secret mismatch — SYNC_SECRET must match VITE_SYNC_SECRET'
+  if (status === 401) return 'Sync key rejected — it must match SYNC_SECRET on Vercel'
   if (status === 503) {
     if (body?.detail) return body.detail
     return body?.error || 'Redis not connected — add Upstash on Vercel'

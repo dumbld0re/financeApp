@@ -45,7 +45,7 @@ function sanitizePayload(body) {
       kind: g.kind === 'long_term' ? 'long_term' : 'goal',
       targetAmount: Number(g.targetAmount) || 0,
       currentAmount: Number(g.currentAmount) || 0,
-      createdAt: Number(g.createdAt),
+      createdAt: Number(g.createdAt) || Date.now(),
       ...(g.completedAt ? { completedAt: Number(g.completedAt) } : {}),
     })),
     categories: {
@@ -103,6 +103,19 @@ export async function PUT(request) {
   }
 
   const payload = sanitizePayload(body)
+
+  const badTx = payload.transactions.find(
+    (t) => !Number.isFinite(t.amount) || t.amount < 0 || !Number.isFinite(t.date)
+  )
+  if (badTx) {
+    return jsonResponse(
+      {
+        error: 'Invalid data shape',
+        detail: `Transaction ${badTx.id} has a non-numeric amount or date`,
+      },
+      400
+    )
+  }
 
   try {
     await saveFinanceData(redis, payload)

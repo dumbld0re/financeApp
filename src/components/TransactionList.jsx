@@ -16,28 +16,34 @@ function getLabel(transaction) {
   return description || 'Transaction'
 }
 
-function TransactionItem({ transaction, goals, onEditIncome }) {
+function TransactionItem({ transaction, goals, onEditTransaction }) {
   const { type, amount } = transaction
   const label = getLabel(transaction)
 
-  if (type === 'income') {
+  if (type === 'income' || type === 'expense' || type === 'savings_transfer') {
+    const prefix = type === 'income' ? '+' : type === 'expense' ? '−' : '→'
+    const desc =
+      type === 'savings_transfer' ? `to ${getGoalName(goals, transaction.goalId)}` : label
+    const kindClass =
+      type === 'income' ? 'tx-income' : type === 'expense' ? 'tx-expense' : 'tx-transfer'
+
     return (
-      <li className="tx-item tx-income tx-item--editable">
+      <li className={`tx-item ${kindClass} tx-item--editable`}>
         <button
           type="button"
           className="tx-item-btn"
-          onClick={() => onEditIncome(transaction)}
-          aria-label={`Edit income type for ${label}`}
+          onClick={() => onEditTransaction(transaction)}
+          aria-label={`Edit ${formatCurrency(amount)} ${desc}`}
         >
-          <span className="tx-prefix">+</span>
+          <span className="tx-prefix">{prefix}</span>
           <span className="tx-amount">{formatCurrency(amount)}</span>
-          <span className="tx-desc">{label}</span>
+          <span className="tx-desc">{desc}</span>
         </button>
       </li>
     )
   }
 
-  if (type === 'expense' || type === 'goal_complete') {
+  if (type === 'goal_complete') {
     return (
       <li className="tx-item tx-expense">
         <span className="tx-prefix">−</span>
@@ -47,23 +53,12 @@ function TransactionItem({ transaction, goals, onEditIncome }) {
     )
   }
 
-  if (type === 'savings_release') {
-    const goalName = getGoalName(goals, transaction.goalId)
-    return (
-      <li className="tx-item tx-release">
-        <span className="tx-prefix">↩</span>
-        <span className="tx-amount">{formatCurrency(amount)}</span>
-        <span className="tx-desc">released from {goalName}</span>
-      </li>
-    )
-  }
-
   const goalName = getGoalName(goals, transaction.goalId)
   return (
-    <li className="tx-item tx-transfer">
-      <span className="tx-prefix">→</span>
+    <li className="tx-item tx-release">
+      <span className="tx-prefix">↩</span>
       <span className="tx-amount">{formatCurrency(amount)}</span>
-      <span className="tx-desc">to {goalName}</span>
+      <span className="tx-desc">released from {goalName}</span>
     </li>
   )
 }
@@ -101,7 +96,7 @@ export default function TransactionList({
   goals,
   categories,
   onManageCategories,
-  onEditIncome,
+  onEditTransaction,
 }) {
   const [filterCategory, setFilterCategory] = useState(null)
 
@@ -149,7 +144,7 @@ export default function TransactionList({
                         key={tx.id}
                         transaction={tx}
                         goals={goals}
-                        onEditIncome={onEditIncome}
+                        onEditTransaction={onEditTransaction}
                       />
                     ))}
                   </ul>

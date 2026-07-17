@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { roundToCents } from '../utils/calculations'
 
 export default function GoalModal({ onClose, onSubmit }) {
   const [name, setName] = useState('')
@@ -16,7 +17,7 @@ export default function GoalModal({ onClose, onSubmit }) {
 
     let parsedTarget = 0
     if (kind === 'goal') {
-      parsedTarget = parseFloat(targetAmount)
+      parsedTarget = roundToCents(parseFloat(targetAmount))
       if (!parsedTarget || parsedTarget <= 0) {
         setError('Enter a valid target amount')
         return

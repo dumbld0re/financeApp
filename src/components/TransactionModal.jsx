@@ -1,5 +1,11 @@
 import { useState } from 'react'
-import { generateId, getActiveGoals } from '../utils/calculations'
+import {
+  generateId,
+  getActiveGoals,
+  roundToCents,
+  toDateInputValue,
+  fromDateInputValue,
+} from '../utils/calculations'
 import { categoriesForType, defaultCategoryForType } from '../utils/categories'
 
 const TYPES = [
@@ -12,18 +18,30 @@ export default function TransactionModal({
   goals,
   categories,
   preselectedGoalId,
+  transaction,
   onClose,
   onSubmit,
+  onDelete,
 }) {
+  const editing = Boolean(transaction)
   const isGoalAdd = Boolean(preselectedGoalId)
   const activeGoals = getActiveGoals(goals)
 
-  const [step, setStep] = useState(isGoalAdd ? 2 : 1)
-  const [type, setType] = useState(isGoalAdd ? 'savings_transfer' : null)
-  const [amount, setAmount] = useState('')
-  const [description, setDescription] = useState('')
-  const [category, setCategory] = useState('')
-  const [goalId, setGoalId] = useState(preselectedGoalId ?? '')
+  const [step, setStep] = useState(editing || isGoalAdd ? 2 : 1)
+  const [type, setType] = useState(
+    editing ? transaction.type : isGoalAdd ? 'savings_transfer' : null
+  )
+  const [amount, setAmount] = useState(editing ? String(transaction.amount) : '')
+  const [description, setDescription] = useState(
+    editing && transaction.type !== 'income' ? transaction.description || '' : ''
+  )
+  const [category, setCategory] = useState(editing ? transaction.category || '' : '')
+  const [goalId, setGoalId] = useState(
+    preselectedGoalId ?? (editing ? transaction.goalId || '' : '')
+  )
+  const [dateStr, setDateStr] = useState(
+    toDateInputValue(editing ? transaction.date : Date.now())
+  )
   const [error, setError] = useState('')
 
   function selectType(selected) {
@@ -46,10 +64,15 @@ export default function TransactionModal({
 
   function handleSubmit(e) {
     e.preventDefault()
-    const parsedAmount = parseFloat(amount)
+    const parsedAmount = roundToCents(parseFloat(amount))
 
     if (!parsedAmount || parsedAmount <= 0) {
       setError('Enter a valid amount')
+      return
+    }
+
+    if (!dateStr) {
+      setError('Pick a date')
       return
     }
 
@@ -74,8 +97,19 @@ export default function TransactionModal({
       }
     }
 
-    const transaction = {
-      id: generateId(),
+    // keep the exact original time when the day wasn't changed, so ordering
+    // within a day is preserved; new transactions dated today keep "now"
+    let date
+    if (editing) {
+      date = dateStr === toDateInputValue(transaction.date)
+        ? transaction.date
+        : fromDateInputValue(dateStr)
+    } else {
+      date = dateStr === toDateInputValue(Date.now()) ? Date.now() : fromDateInputValue(dateStr)
+    }
+
+    const next = {
+      id: editing ? transaction.id : generateId(),
       type,
       amount: parsedAmount,
       description:
@@ -83,24 +117,38 @@ export default function TransactionModal({
           ? category
           : type === 'savings_transfer'
             ? description.trim() ||
-              `Transfer to ${activeGoals.find((g) => g.id === goalId)?.name ?? 'savings'}`
+              `Transfer to ${goalOptions.find((g) => g.id === goalId)?.name ?? 'savings'}`
             : description.trim(),
-      date: Date.now(),
+      date,
     }
 
     if (type === 'income' || type === 'expense') {
-      transaction.category = category
+      next.category = category
     }
 
     if (type === 'savings_transfer') {
-      transaction.goalId = goalId
+      next.goalId = goalId
     }
 
-    onSubmit(transaction)
+    onSubmit(next)
     onClose()
   }
 
-  const categoryOptions = categoriesForType(type, categories)
+  const baseCategories = categoriesForType(type, categories)
+  // when editing, keep a category that was removed from the list selectable
+  const categoryOptions =
+    editing && transaction.category && !baseCategories.includes(transaction.category)
+      ? [transaction.category, ...baseCategories]
+      : baseCategories
+
+  // when editing a transfer to a completed/removed goal, keep it selectable
+  let goalOptions = activeGoals
+  if (editing && transaction.goalId && !activeGoals.some((g) => g.id === transaction.goalId)) {
+    const known = goals.find((g) => g.id === transaction.goalId)
+    goalOptions = [known || { id: transaction.goalId, name: 'Former goal' }, ...activeGoals]
+  }
+
+  const typeLabel = TYPES.find((t) => t.id === type)?.label
 
   return (
     <div className="modal-overlay" onClick={onClose} role="presentation">
@@ -113,7 +161,13 @@ export default function TransactionModal({
       >
         <div className="modal-header">
           <h2 id="transaction-modal-title">
-            {isGoalAdd ? 'Add to savings' : step === 1 ? 'New transaction' : TYPES.find((t) => t.id === type)?.label}
+            {editing
+              ? `Edit ${typeLabel?.toLowerCase() ?? 'transaction'}`
+              : isGoalAdd
+                ? 'Add to savings'
+                : step === 1
+                  ? 'New transaction'
+                  : typeLabel}
           </h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
             ×
@@ -140,7 +194,7 @@ export default function TransactionModal({
 
         {step === 2 && (
           <form className="modal-body" onSubmit={handleSubmit}>
-            {!isGoalAdd && (
+            {!isGoalAdd && !editing && (
               <button type="button" className="btn btn-text back-btn" onClick={handleBack}>
                 ← Back
               </button>
@@ -158,6 +212,16 @@ export default function TransactionModal({
                 onChange={(e) => setAmount(e.target.value)}
                 required
                 autoFocus
+              />
+            </label>
+
+            <label className="field">
+              <span>Date</span>
+              <input
+                type="date"
+                value={dateStr}
+                onChange={(e) => setDateStr(e.target.value)}
+                required
               />
             </label>
 
@@ -202,7 +266,7 @@ export default function TransactionModal({
                   disabled={isGoalAdd}
                 >
                   <option value="">Select</option>
-                  {activeGoals.map((g) => (
+                  {goalOptions.map((g) => (
                     <option key={g.id} value={g.id}>
                       {g.name} {g.kind === 'long_term' ? '(long-term)' : ''}
                     </option>
@@ -216,6 +280,15 @@ export default function TransactionModal({
             <button type="submit" className="btn btn-primary btn-full">
               Save
             </button>
+            {editing && (
+              <button
+                type="button"
+                className="btn btn-ghost-danger btn-full"
+                onClick={() => onDelete(transaction)}
+              >
+                Delete transaction
+              </button>
+            )}
           </form>
         )}
       </div>

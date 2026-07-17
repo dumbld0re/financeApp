@@ -1,26 +1,24 @@
 import { formatCurrency } from '../utils/calculations'
-import { isSyncEnabled, getSyncSetupHint } from '../utils/sync'
 
 const SYNC_LABELS = {
   syncing: 'Syncing…',
   synced: 'Synced',
   offline: 'Offline',
-  local: '',
 }
 
 export default function BalanceHeader({
   totalBalance,
   netBalance,
   savingsPercentage,
+  syncEnabled,
   syncStatus,
   syncMessage,
+  onOpenSync,
 }) {
   const savingsLabel =
     savingsPercentage === null ? '--' : `${Math.round(savingsPercentage)}%`
 
-  const setupHint = getSyncSetupHint()
-  const syncLabel = isSyncEnabled() ? SYNC_LABELS[syncStatus] || '' : ''
-  const detail = syncMessage || setupHint
+  const syncLabel = syncEnabled ? SYNC_LABELS[syncStatus] || 'Sync' : 'Sync off'
 
   return (
     <header className="balance-header">
@@ -29,8 +27,10 @@ export default function BalanceHeader({
       <h1 className="balance-amount">{formatCurrency(totalBalance)}</h1>
       <p className="balance-net">Net: {formatCurrency(netBalance)}</p>
       <p className="balance-savings">Savings: {savingsLabel}</p>
-      {syncLabel && <p className="sync-status">{syncLabel}</p>}
-      {detail && <p className="sync-detail">{detail}</p>}
+      <button type="button" className="sync-status sync-status--btn" onClick={onOpenSync}>
+        {syncLabel}
+      </button>
+      {syncEnabled && syncMessage && <p className="sync-detail">{syncMessage}</p>}
     </header>
   )
 }

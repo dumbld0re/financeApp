@@ -4,7 +4,8 @@ export const DEFAULT_CATEGORIES = {
 }
 
 export function allCategories(categories) {
-  return [...(categories?.income ?? []), ...(categories?.expense ?? [])]
+  // dedupe: older data may have the same name in both income and expense
+  return [...new Set([...(categories?.income ?? []), ...(categories?.expense ?? [])])]
 }
 
 export function categoriesForType(type, categories) {

@@ -1,20 +1,22 @@
 import { useState, useEffect, useRef } from 'react'
-import { setData, initializeDataIfEmpty } from './utils/localStorage'
+import { setData, initializeDataIfEmpty, isValidData } from './utils/localStorage'
 import { migrateData } from './utils/migrate'
 import {
   mergeData,
   pullData,
   pushData,
-  isSyncEnabled,
   checkHealth,
-  getSyncSetupHint,
+  getClientSecret,
+  setClientSecret,
 } from './utils/sync'
 import {
   computeNetBalance,
   computeTotalBalance,
   computeTotalSavings,
   computeSavingsPercentage,
+  formatCurrency,
   generateId,
+  roundToCents,
 } from './utils/calculations'
 import BalanceHeader from './components/BalanceHeader'
 import SavingsGoals from './components/SavingsGoals'
@@ -23,7 +25,7 @@ import TransactionModal from './components/TransactionModal'
 import GoalModal from './components/GoalModal'
 import ConfirmModal from './components/ConfirmModal'
 import CategoriesModal from './components/CategoriesModal'
-import EditIncomeModal from './components/EditIncomeModal'
+import SyncModal from './components/SyncModal'
 
 export default function App() {
   const [data, setDataState] = useState(() => initializeDataIfEmpty())
@@ -33,15 +35,27 @@ export default function App() {
   const [addToGoalId, setAddToGoalId] = useState(null)
   const [goalToDelete, setGoalToDelete] = useState(null)
   const [goalToComplete, setGoalToComplete] = useState(null)
-  const [incomeToEdit, setIncomeToEdit] = useState(null)
-  const [syncStatus, setSyncStatus] = useState(isSyncEnabled() ? 'syncing' : 'local')
-  const [syncMessage, setSyncMessage] = useState(getSyncSetupHint())
-  const skipCloudPush = useRef(true)
+  const [transactionToEdit, setTransactionToEdit] = useState(null)
+  const [transactionToDelete, setTransactionToDelete] = useState(null)
+  const [syncModalOpen, setSyncModalOpen] = useState(false)
+  const [syncSecret, setSyncSecretState] = useState(() => getClientSecret())
+  const [syncStatus, setSyncStatus] = useState(getClientSecret() ? 'syncing' : 'local')
+  const [syncMessage, setSyncMessage] = useState(null)
+  const dataRef = useRef(data)
+  const lastSyncedRef = useRef(null)
+  const pullDoneRef = useRef(false)
+
+  const syncEnabled = Boolean(syncSecret)
 
   useEffect(() => {
-    if (!isSyncEnabled()) return
+    if (!syncSecret) {
+      setSyncStatus('local')
+      setSyncMessage(null)
+      return
+    }
 
     let cancelled = false
+    pullDoneRef.current = false
 
     async function syncFromCloud() {
       setSyncStatus('syncing')
@@ -51,12 +65,14 @@ export default function App() {
       if (cancelled) return
 
       if (health && !health.redis) {
+        pullDoneRef.current = true
         setSyncStatus('offline')
         setSyncMessage(health.detail || 'Redis missing — add Upstash Redis integration on Vercel')
         return
       }
 
       if (health && !health.serverSecret) {
+        pullDoneRef.current = true
         setSyncStatus('offline')
         setSyncMessage('Add SYNC_SECRET on Vercel, then redeploy')
         return
@@ -64,6 +80,7 @@ export default function App() {
 
       const { data: remote, error } = await pullData()
       if (cancelled) return
+      pullDoneRef.current = true
 
       if (error) {
         setSyncStatus('offline')
@@ -71,64 +88,52 @@ export default function App() {
         return
       }
 
-      setDataState((local) => {
-        if (!remote) {
-          pushData(local).then((result) => {
-            if (cancelled) return
-            if (result.ok) {
-              setSyncStatus('synced')
-              setSyncMessage(null)
-            } else {
-              setSyncStatus('offline')
-              setSyncMessage(result.error)
-            }
-          })
-          return local
-        }
-
-        const merged = migrateData(mergeData(local, remote))
-        setData(merged)
-
-        if ((local.updatedAt || 0) > (remote.updatedAt || 0)) {
-          pushData(merged).then((result) => {
-            if (cancelled) return
-            if (result.ok) {
-              setSyncStatus('synced')
-              setSyncMessage(null)
-            } else {
-              setSyncStatus('offline')
-              setSyncMessage(result.error)
-            }
-          })
-        } else {
+      if (!remote) {
+        const snapshot = dataRef.current
+        const result = await pushData(snapshot)
+        if (cancelled) return
+        if (result.ok) {
+          lastSyncedRef.current = snapshot
           setSyncStatus('synced')
           setSyncMessage(null)
+        } else {
+          setSyncStatus('offline')
+          setSyncMessage(result.error)
         }
+        return
+      }
 
-        return merged
-      })
+      const migratedRemote = migrateData(remote)
+      lastSyncedRef.current = migratedRemote
+      // mergeData is pure and returns migratedRemote itself when local has
+      // nothing new, so the push effect below can tell the two cases apart.
+      setDataState((local) => mergeData(local, migratedRemote))
     }
 
     syncFromCloud()
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [syncSecret])
 
   useEffect(() => {
+    dataRef.current = data
     setData(data)
 
-    if (!isSyncEnabled()) return
+    if (!syncEnabled || !pullDoneRef.current) return
 
-    if (skipCloudPush.current) {
-      skipCloudPush.current = false
+    if (data === lastSyncedRef.current) {
+      setSyncStatus('synced')
+      setSyncMessage(null)
       return
     }
 
     const timer = setTimeout(async () => {
       setSyncStatus('syncing')
-      const result = await pushData(data)
+      const snapshot = dataRef.current
+      const result = await pushData(snapshot)
       if (result.ok) {
+        lastSyncedRef.current = snapshot
         setSyncStatus('synced')
         setSyncMessage(null)
       } else {
@@ -138,7 +143,19 @@ export default function App() {
     }, 600)
 
     return () => clearTimeout(timer)
-  }, [data])
+  }, [data, syncEnabled])
+
+  function handleSaveSyncSecret(secret) {
+    setClientSecret(secret)
+    setSyncSecretState(secret)
+    setSyncModalOpen(false)
+  }
+
+  function handleDisableSync() {
+    setClientSecret('')
+    setSyncSecretState('')
+    setSyncModalOpen(false)
+  }
 
   const totalSavings = computeTotalSavings(data.savingsGoals)
   const netBalance = computeNetBalance(data.transactions, data.savingsGoals)
@@ -155,7 +172,7 @@ export default function App() {
     if (transaction.type === 'savings_transfer' && transaction.goalId) {
       next.savingsGoals = data.savingsGoals.map((g) =>
         g.id === transaction.goalId
-          ? { ...g, currentAmount: g.currentAmount + transaction.amount }
+          ? { ...g, currentAmount: roundToCents(g.currentAmount + transaction.amount) }
           : g
       )
     }
@@ -234,20 +251,106 @@ export default function App() {
     setGoalToComplete(null)
   }
 
-  function handleUpdateIncomeCategory(transactionId, category) {
+  function adjustGoalAmount(goals, goalId, delta) {
+    return goals.map((g) =>
+      g.id === goalId
+        ? { ...g, currentAmount: Math.max(0, roundToCents(g.currentAmount + delta)) }
+        : g
+    )
+  }
+
+  function handleUpdateTransaction(updated) {
+    const prev = data.transactions.find((t) => t.id === updated.id)
+    if (!prev) return
+
+    let savingsGoals = data.savingsGoals
+    if (prev.type === 'savings_transfer' && prev.goalId) {
+      savingsGoals = adjustGoalAmount(savingsGoals, prev.goalId, -prev.amount)
+    }
+    if (updated.type === 'savings_transfer' && updated.goalId) {
+      savingsGoals = adjustGoalAmount(savingsGoals, updated.goalId, updated.amount)
+    }
+
     persist({
       ...data,
-      transactions: data.transactions.map((t) =>
-        t.id === transactionId && t.type === 'income'
-          ? { ...t, category, description: category }
-          : t
-      ),
+      transactions: data.transactions.map((t) => (t.id === updated.id ? updated : t)),
+      savingsGoals,
     })
+    setTransactionToEdit(null)
+  }
+
+  function requestDeleteTransaction(transaction) {
+    setTransactionToEdit(null)
+    setTransactionToDelete(transaction)
+  }
+
+  function handleConfirmDeleteTransaction() {
+    const tx = transactionToDelete
+    if (!tx) return
+
+    let savingsGoals = data.savingsGoals
+    if (tx.type === 'savings_transfer' && tx.goalId) {
+      savingsGoals = adjustGoalAmount(savingsGoals, tx.goalId, -tx.amount)
+    }
+
+    persist({
+      ...data,
+      transactions: data.transactions.filter((t) => t.id !== tx.id),
+      savingsGoals,
+    })
+    setTransactionToDelete(null)
+  }
+
+  function handleExport() {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `finance-backup-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function handleImport(text) {
+    let parsed
+    try {
+      parsed = JSON.parse(text)
+    } catch {
+      return { ok: false, message: 'Not a valid JSON file' }
+    }
+    if (!isValidData(parsed)) {
+      return { ok: false, message: 'Not a finance backup file' }
+    }
+
+    const cleaned = migrateData({
+      ...parsed,
+      transactions: parsed.transactions
+        .filter(
+          (t) =>
+            t &&
+            t.id &&
+            Number.isFinite(Number(t.amount)) &&
+            Number(t.amount) >= 0 &&
+            Number.isFinite(Number(t.date))
+        )
+        .map((t) => ({ ...t, amount: roundToCents(Number(t.amount)), date: Number(t.date) })),
+    })
+
+    const merged = mergeData(cleaned, data)
+    if (merged === data) {
+      return { ok: true, message: 'Nothing new to import' }
+    }
+
+    const added = merged.transactions.length - data.transactions.length
+    persist(merged)
+    return { ok: true, message: `Imported ${added} new transaction${added === 1 ? '' : 's'}` }
   }
 
   function handleAddCategory(type, name) {
     const list = data.categories[type]
-    if (list.includes(name)) return
+    // block duplicates across both types: the filter chips and category
+    // lookups treat names as unique
+    if (data.categories.income.includes(name) || data.categories.expense.includes(name)) return
     persist({
       ...data,
       categories: {
@@ -281,8 +384,10 @@ export default function App() {
           totalBalance={totalBalance}
           netBalance={netBalance}
           savingsPercentage={savingsPercentage}
+          syncEnabled={syncEnabled}
           syncStatus={syncStatus}
           syncMessage={syncMessage}
+          onOpenSync={() => setSyncModalOpen(true)}
         />
 
         <SavingsGoals
@@ -298,7 +403,7 @@ export default function App() {
           goals={data.savingsGoals}
           categories={data.categories}
           onManageCategories={() => setCategoriesModalOpen(true)}
-          onEditIncome={setIncomeToEdit}
+          onEditTransaction={setTransactionToEdit}
         />
       </main>
 
@@ -334,12 +439,39 @@ export default function App() {
         />
       )}
 
-      {incomeToEdit && (
-        <EditIncomeModal
-          transaction={incomeToEdit}
+      {transactionToEdit && (
+        <TransactionModal
+          transaction={transactionToEdit}
+          goals={data.savingsGoals}
           categories={data.categories}
-          onClose={() => setIncomeToEdit(null)}
-          onSubmit={handleUpdateIncomeCategory}
+          onClose={() => setTransactionToEdit(null)}
+          onSubmit={handleUpdateTransaction}
+          onDelete={requestDeleteTransaction}
+        />
+      )}
+
+      {transactionToDelete && (
+        <ConfirmModal
+          title="Delete transaction?"
+          message={
+            transactionToDelete.type === 'savings_transfer'
+              ? `Delete this ${formatCurrency(transactionToDelete.amount)} transfer? The amount will be removed from the goal and return to your spendable balance.`
+              : `Delete ${formatCurrency(transactionToDelete.amount)} — ${transactionToDelete.description || transactionToDelete.category || 'transaction'}? This cannot be undone.`
+          }
+          confirmLabel="Delete"
+          onClose={() => setTransactionToDelete(null)}
+          onConfirm={handleConfirmDeleteTransaction}
+        />
+      )}
+
+      {syncModalOpen && (
+        <SyncModal
+          enabled={syncEnabled}
+          onClose={() => setSyncModalOpen(false)}
+          onSave={handleSaveSyncSecret}
+          onDisable={handleDisableSync}
+          onExport={handleExport}
+          onImport={handleImport}
         />
       )}
 
@@ -357,7 +489,7 @@ export default function App() {
           title={goalToDelete.kind === 'long_term' ? 'Remove long-term savings?' : 'Delete goal?'}
           message={
             goalToDelete.currentAmount > 0
-              ? `Are you sure? ${goalToDelete.name} has ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(goalToDelete.currentAmount)} that will return to your spendable balance.`
+              ? `Are you sure? ${goalToDelete.name} has ${formatCurrency(goalToDelete.currentAmount)} that will return to your spendable balance.`
               : `Remove "${goalToDelete.name}"?`
           }
           confirmLabel={goalToDelete.kind === 'long_term' ? 'Remove' : 'Delete'}
@@ -369,7 +501,7 @@ export default function App() {
       {goalToComplete && (
         <ConfirmModal
           title="Complete goal?"
-          message={`Mark "${goalToComplete.name}" as purchased? ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(goalToComplete.currentAmount)} will be recorded as spent.`}
+          message={`Mark "${goalToComplete.name}" as purchased? ${formatCurrency(goalToComplete.currentAmount)} will be recorded as spent.`}
           confirmLabel="Complete"
           onClose={() => setGoalToComplete(null)}
           onConfirm={handleConfirmCompleteGoal}

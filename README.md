@@ -5,13 +5,15 @@ A personal finance web app for tracking income, expenses, and savings goals. Dat
 ## Features
 
 - **Balance overview** — Total balance, net spendable balance (after allocated savings), and savings percentage
-- **Transactions** — Record income, expenses, and transfers to savings goals
+- **Transactions** — Record income, expenses, and transfers to savings goals; tap any entry to edit or delete it
+- **Custom dates** — Backdate transactions to log past expenses; the timeline sorts and groups them correctly
+- **Backup** — Export all data as JSON and import it back (merges additively, safe to re-import)
 - **Savings goals** — Target-based goals with progress bars, plus long-term savings buckets without a fixed target
 - **Goal lifecycle** — Add funds to goals, mark goals as complete (recorded as spent), or delete goals (funds return to spendable balance)
 - **Categories** — Customizable income and expense categories
 - **Transaction history** — Grouped by date with labels like Today and Yesterday
 - **Cloud sync** — Optional sync across devices when deployed to Vercel with Redis configured
-- **Offline-first** — Works fully in the browser with `localStorage`; sync is additive
+- **Offline-first** — Works fully in the browser with `localStorage`; sync merges additively (transactions are unioned by id, never overwritten wholesale)
 
 ## Tech Stack
 
@@ -53,10 +55,10 @@ Deploy to [Vercel](https://vercel.com) to enable cross-device sync.
 
 1. **Import the repo** into Vercel and deploy.
 2. **Add Upstash Redis** — In the Vercel project, go to Storage → Create Database → Upstash Redis. This auto-injects `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
-3. **Set sync secrets** — Add both environment variables with the same random value:
-   - `SYNC_SECRET` — used by the server API
-   - `VITE_SYNC_SECRET` — embedded in the client at build time
-4. **Redeploy** — Vite bakes `VITE_*` variables in at build time, so you must redeploy after adding or changing them.
+3. **Set the sync secret** — Add the `SYNC_SECRET` environment variable with a long random value, then redeploy.
+4. **Enter the key in the app** — Open the deployed app, tap the sync button under the balance, and enter the same value. The key is stored in that browser's `localStorage` only — it is never embedded in the public JS bundle. Repeat once per device you want to sync.
+
+> If you previously set `VITE_SYNC_SECRET`, remove it from Vercel and redeploy — it is no longer used, and build-time `VITE_*` values are readable by anyone in the served bundle.
 
 Copy `.env.example` to `.env.local` for local testing with the full stack:
 
@@ -72,8 +74,7 @@ npx vercel dev
 
 | Variable | Where | Description |
 |----------|-------|-------------|
-| `VITE_SYNC_SECRET` | Client (build time) | Bearer token sent with sync requests |
-| `SYNC_SECRET` | Server | Must match `VITE_SYNC_SECRET` |
+| `SYNC_SECRET` | Server | Bearer token the API requires; enter the same value in the app's sync settings |
 | `UPSTASH_REDIS_REST_URL` | Server | Auto-set by Vercel Upstash integration |
 | `UPSTASH_REDIS_REST_TOKEN` | Server | Auto-set by Vercel Upstash integration |
 

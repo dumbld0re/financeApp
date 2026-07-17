@@ -9,7 +9,7 @@ export const DEFAULT_DATA = {
   categories: { ...DEFAULT_CATEGORIES },
 }
 
-function isValidData(data) {
+export function isValidData(data) {
   return (
     data &&
     typeof data === 'object' &&
