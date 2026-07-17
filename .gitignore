@@ -24,6 +24,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-.claude/
+# Claude: keep shared skills, ignore personal/local config
+.claude/*
+!.claude/skills/
+.claude/skills/*/node_modules/
 .vercel
-.env*
+.env.local
+.env.*.local
