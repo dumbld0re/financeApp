@@ -8,6 +8,7 @@ export const DEFAULT_DATA = {
   savingsGoals: [],
   recurring: [],
   categories: { ...DEFAULT_CATEGORIES },
+  budgets: {},
 }
 
 export function isValidData(data) {

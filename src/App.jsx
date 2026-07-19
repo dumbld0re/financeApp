@@ -20,6 +20,9 @@ import {
 } from './utils/calculations'
 import { applyRecurring } from './utils/recurring'
 import BalanceHeader from './components/BalanceHeader'
+import BudgetsSection from './components/BudgetsSection'
+import BudgetModal from './components/BudgetModal'
+import InsightsSection from './components/InsightsSection'
 import MonthlySummary from './components/MonthlySummary'
 import SavingsGoals from './components/SavingsGoals'
 import WithdrawModal from './components/WithdrawModal'
@@ -48,6 +51,7 @@ export default function App() {
   const [goalToWithdraw, setGoalToWithdraw] = useState(null)
   const [transactionToEdit, setTransactionToEdit] = useState(null)
   const [transactionToDelete, setTransactionToDelete] = useState(null)
+  const [budgetModalOpen, setBudgetModalOpen] = useState(false)
   const [syncModalOpen, setSyncModalOpen] = useState(false)
   const [syncSecret, setSyncSecretState] = useState(() => getClientSecret())
   const [syncStatus, setSyncStatus] = useState(getClientSecret() ? 'syncing' : 'local')
@@ -438,13 +442,22 @@ export default function App() {
   function handleRemoveCategory(type, name) {
     const list = data.categories[type]
     if (list.length <= 1) return
+    // a removed expense category shouldn't leave an orphaned budget behind
+    const budgets = { ...(data.budgets || {}) }
+    delete budgets[name]
     persist({
       ...data,
       categories: {
         ...data.categories,
         [type]: list.filter((c) => c !== name),
       },
+      budgets,
     })
+  }
+
+  function handleSaveBudgets(budgets) {
+    persist({ ...data, budgets })
+    setBudgetModalOpen(false)
   }
 
   function openAddToGoal(goalId) {
@@ -481,7 +494,15 @@ export default function App() {
           onDelete={setRecurringToDelete}
         />
 
+        <BudgetsSection
+          transactions={data.transactions}
+          budgets={data.budgets || {}}
+          onEdit={() => setBudgetModalOpen(true)}
+        />
+
         <MonthlySummary transactions={data.transactions} />
+
+        <InsightsSection transactions={data.transactions} />
 
         <TransactionList
           transactions={data.transactions}
@@ -590,6 +611,15 @@ export default function App() {
           confirmLabel="Delete"
           onClose={() => setRecurringToDelete(null)}
           onConfirm={handleConfirmDeleteRecurring}
+        />
+      )}
+
+      {budgetModalOpen && (
+        <BudgetModal
+          categories={data.categories}
+          budgets={data.budgets || {}}
+          onClose={() => setBudgetModalOpen(false)}
+          onSubmit={handleSaveBudgets}
         />
       )}
 

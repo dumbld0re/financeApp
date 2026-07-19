@@ -10,6 +10,8 @@ A personal finance web app for tracking income, expenses, and savings goals. Dat
 - **Backup** — Export all data as JSON and import it back (merges additively, safe to re-import)
 - **Savings goals** — Target-based goals with progress bars, plus long-term savings buckets without a fixed target
 - **Goal lifecycle** — Add funds to goals, withdraw part of a goal's balance, mark goals as complete (recorded as spent), or delete goals (funds return to spendable balance)
+- **Budgets** — Set a monthly spending limit per expense category; the Budgets section shows spent-vs-limit progress, what's left this month, and flags any category that's over
+- **Insights** — A spending-by-category donut for the current month and a six-month net trend, drawn inline with no chart library
 - **Monthly summary** — Per-month income, spending, and savings totals with a category breakdown and month navigation
 - **Overspend warning** — A gentle warning (not a block) when an expense or transfer exceeds your spendable balance
 - **Bulk add** — Paste multiple transactions in shorthand (sign, amount, description, optional date, `@Category`) with a live preview

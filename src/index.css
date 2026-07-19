@@ -992,3 +992,303 @@ body {
   font-size: 0.875rem;
   margin-bottom: 12px;
 }
+
+.field-hint {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+/* Budgets */
+.budgets-section {
+  margin-bottom: 32px;
+}
+
+.budget-overview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px;
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+.budget-overview-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.budget-overview-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.budget-overview-sub {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.budget-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.budget-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.875rem;
+  margin-bottom: 5px;
+}
+
+.budget-row-name {
+  font-weight: 500;
+}
+
+.budget-row-amt {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.budget-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.budget-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  opacity: 0.85;
+  border-radius: 3px;
+  transition: width 0.2s ease;
+}
+
+.budget-bar-fill--over {
+  background: var(--expense);
+  opacity: 0.85;
+}
+
+.budget-row-note {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Budget modal fields render as a name + input row */
+.budget-field {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.budget-field > span {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.budget-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  padding-left: 12px;
+  width: 130px;
+}
+
+.budget-input:focus-within {
+  outline: 2px solid var(--accent);
+  border-color: transparent;
+}
+
+.budget-input-prefix {
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+}
+
+.budget-input input {
+  border: none;
+  background: transparent;
+  padding: 10px 12px 10px 2px;
+  width: 100%;
+  text-align: right;
+  font: inherit;
+}
+
+.budget-input input:focus {
+  outline: none;
+}
+
+/* Insights */
+.insights-section {
+  margin-bottom: 32px;
+}
+
+.insights-tabs {
+  display: inline-flex;
+  gap: 2px;
+  background: var(--border);
+  border-radius: 999px;
+  padding: 2px;
+}
+
+.insights-tab {
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 5px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.insights-tab--active {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+.donut-wrap {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.donut-figure {
+  position: relative;
+  width: 168px;
+  height: 168px;
+  flex-shrink: 0;
+  margin: 0 auto;
+}
+
+.donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.donut-center-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.donut-center-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.donut-legend {
+  list-style: none;
+  flex: 1;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.donut-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+}
+
+.donut-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.donut-legend-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.donut-legend-amt {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.trend-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 4px 0;
+}
+
+.trend-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.trend-bar-track {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.trend-bar {
+  width: 100%;
+  max-width: 34px;
+  margin: 0 auto;
+  border-radius: 4px;
+}
+
+.trend-bar--pos {
+  background: var(--income);
+  opacity: 0.85;
+}
+
+.trend-bar--neg {
+  background: var(--expense);
+  opacity: 0.85;
+}
+
+.trend-label {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.trend-caption {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 10px;
+}

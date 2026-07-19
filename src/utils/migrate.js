@@ -46,11 +46,22 @@ export function migrateData(data) {
     ? data.recurring.map(normalizeRule)
     : []
 
+  // budgets: a map of expense-category name -> positive monthly limit. Drop any
+  // entry that isn't a valid positive number so downstream math stays clean.
+  const budgets = {}
+  if (data.budgets && typeof data.budgets === 'object') {
+    for (const [name, limit] of Object.entries(data.budgets)) {
+      const value = Number(limit)
+      if (Number.isFinite(value) && value > 0) budgets[name] = value
+    }
+  }
+
   return {
     transactions: stripped.transactions,
     savingsGoals,
     recurring,
     categories,
+    budgets,
     ...(data.updatedAt ? { updatedAt: data.updatedAt } : {}),
   }
 }

@@ -118,6 +118,20 @@ export function mergeData(local, remote) {
   const recurring = [...recurringById.values()]
   if (recurring.length !== (remote.recurring?.length ?? 0)) changed = true
 
+  // budgets: union by category name. Keys unique to either side are kept; on a
+  // key present in both, the newer snapshot's limit wins. Additive, like
+  // categories — a removal on one device doesn't propagate as a deletion.
+  const budgets = { ...(remote.budgets || {}) }
+  for (const [name, limit] of Object.entries(local.budgets || {})) {
+    if (!(name in budgets)) {
+      budgets[name] = limit
+      changed = true
+    } else if (localNewer && budgets[name] !== limit) {
+      budgets[name] = limit
+      changed = true
+    }
+  }
+
   if (!changed) return remote
 
   return {
@@ -125,6 +139,7 @@ export function mergeData(local, remote) {
     savingsGoals,
     recurring,
     categories: { income, expense },
+    budgets,
     updatedAt: Math.max(local.updatedAt || 0, remote.updatedAt || 0),
   }
 }
