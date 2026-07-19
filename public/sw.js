@@ -1,5 +1,5 @@
 // Bump CACHE to force old caches to be dropped on the next activate.
-const CACHE = 'finance-v1'
+const CACHE = 'finance-v2'
 
 self.addEventListener('install', () => {
   self.skipWaiting()
@@ -29,7 +29,10 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       (async () => {
         try {
-          const fresh = await fetch(request)
+          // no-store bypasses the browser HTTP cache so we always get the
+          // freshly deployed HTML (which references the new hashed assets),
+          // never a stale copy that would pin the app to old JS/CSS.
+          const fresh = await fetch(request, { cache: 'no-store' })
           const cache = await caches.open(CACHE)
           cache.put('/index.html', fresh.clone())
           return fresh

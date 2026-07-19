@@ -11,7 +11,9 @@ createRoot(document.getElementById('root')).render(
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
+    // updateViaCache:'none' stops the browser from serving sw.js itself from
+    // the HTTP cache, so improved SW logic ships on the next visit.
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(() => {
       // offline support is optional; ignore registration failures
     })
   })
