@@ -1160,6 +1160,7 @@ body {
   padding: 5px 14px;
   border-radius: 999px;
   cursor: pointer;
+  transition: color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 
 .insights-tab--active {
@@ -1291,4 +1292,95 @@ body {
   font-size: 0.75rem;
   color: var(--text-muted);
   margin-top: 10px;
+}
+
+/* ---- Motion & refinements ---- */
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes grow-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes grow-y {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+@keyframes donut-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Sections ease in on first paint (runs once — nodes stay mounted across renders) */
+.balance-header,
+.main > section {
+  animation: rise-in 0.4s ease both;
+}
+.main > section:nth-of-type(1) { animation-delay: 0.04s; }
+.main > section:nth-of-type(2) { animation-delay: 0.08s; }
+.main > section:nth-of-type(3) { animation-delay: 0.12s; }
+.main > section:nth-of-type(4) { animation-delay: 0.16s; }
+.main > section:nth-of-type(5) { animation-delay: 0.2s; }
+.main > section:nth-of-type(6) { animation-delay: 0.24s; }
+
+/* Modal entrance: overlay fades, sheet rises */
+.modal-overlay {
+  animation: overlay-in 0.18s ease;
+}
+.modal {
+  animation: sheet-in 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* Bars draw in from their anchored edge */
+.budget-bar-fill {
+  transform-origin: left center;
+  animation: grow-x 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.trend-bar {
+  transform-origin: bottom center;
+  animation: grow-y 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.donut-figure {
+  animation: donut-in 0.4s ease both;
+}
+
+/* Gentle hover lift on cards — pointer devices only, so touch isn't affected */
+@media (hover: hover) {
+  .summary-stat,
+  .budget-overview,
+  .recurring-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .summary-stat:hover,
+  .budget-overview:hover,
+  .recurring-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  }
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
