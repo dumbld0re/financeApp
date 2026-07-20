@@ -7,17 +7,19 @@ import {
 
 // Categorical palette (validated colorblind-safe, fixed order — never cycled).
 // A 9th+ category folds into "Other" rather than reusing a hue.
+// Values live in index.css so they can lift for the dark theme; the order and
+// the colours themselves are unchanged.
 const SLICE_COLORS = [
-  '#2a78d6', // blue
-  '#008300', // green
-  '#e87ba4', // magenta
-  '#eda100', // yellow
-  '#1baf7a', // aqua
-  '#eb6834', // orange
-  '#4a3aa7', // violet
-  '#e34948', // red
+  'var(--slice-1)', // blue
+  'var(--slice-2)', // green
+  'var(--slice-3)', // magenta
+  'var(--slice-4)', // yellow
+  'var(--slice-5)', // aqua
+  'var(--slice-6)', // orange
+  'var(--slice-7)', // violet
+  'var(--slice-8)', // red
 ]
-const OTHER_COLOR = '#8a8a8a'
+const OTHER_COLOR = 'var(--slice-other)'
 const MAX_SLICES = 8
 
 function buildSlices(categories) {
@@ -74,7 +76,7 @@ function Donut({ slices }) {
               cy={size / 2}
               r={r}
               fill="none"
-              stroke={s.color}
+              style={{ stroke: s.color }}
               strokeWidth={stroke}
               strokeDasharray={`${len} ${c - len}`}
               strokeDashoffset={-offset}

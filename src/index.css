@@ -19,12 +19,99 @@
   --transfer: #5c4d7d;
   --radius: 12px;
   --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lift: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-sheet: 0 -4px 24px rgba(0, 0, 0, 0.12);
+  --overlay: rgba(0, 0, 0, 0.4);
+  --fab-glow: 0 4px 16px rgba(45, 106, 79, 0.35);
   --fab-size: 56px;
+
+  /* accent and expense used as fills under white text — these stay dark
+     enough for 4.5:1 in both themes, while --accent/--expense are free to
+     lighten for text use */
+  --accent-solid: #2d6a4f;
+  --accent-solid-hover: #1b4332;
+  --expense-solid: #9b2226;
+  --expense-solid-hover: #7f1d1d;
+
+  --release: #1d6a8a;         /* released-from-goal transactions */
+  --warning: #9a6700;
+
+  --accent-tint: #e8f5ee;     /* chips and secondary buttons */
+  --accent-tint-border: #c8e6d4;
+  --accent-tint-hover: #d4eddf;
+  --accent-wash: #f0faf4;     /* row hover */
+  --expense-wash: #fdf2f2;
+  --expense-row: rgba(155, 34, 38, 0.08);
+
+  /* categorical chart palette — fixed order, never cycled (brief 3.6) */
+  --slice-1: #2a78d6;
+  --slice-2: #008300;
+  --slice-3: #e87ba4;
+  --slice-4: #eda100;
+  --slice-5: #1baf7a;
+  --slice-6: #eb6834;
+  --slice-7: #4a3aa7;
+  --slice-8: #e34948;
+  --slice-other: #8a8a8a;
+
+  color-scheme: light dark;   /* native inputs, date pickers and scrollbars follow the theme */
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.5;
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
+}
+
+/* ---- dark theme (follows the system; no toggle) --------------------------
+   Neutrals match the uni dashboard exactly so the family reads as one set.
+   Greens, reds and status hues lighten for text but filled buttons keep a
+   deeper shade, since white text needs 4.5:1 against the fill. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16171a;
+    --surface: #1e2024;
+    --text: #eceded;
+    --text-muted: #9a9ea4;
+    --border: #2e3137;
+
+    --accent: #5aab82;
+    --accent-hover: #74c39a;
+    --accent-solid: #2f7a58;
+    --accent-solid-hover: #328260;
+
+    --income: #5aab82;
+    --expense: #e4707a;
+    --expense-solid: #b8323a;
+    --expense-solid-hover: #c93f47;
+    --transfer: #a99ad0;
+    --release: #6fb6d4;
+    --warning: #d9a441;
+
+    --accent-tint: #23372e;
+    --accent-tint-border: #2f4a3c;
+    --accent-tint-hover: #2b4437;
+    --accent-wash: #1c2822;
+    --expense-wash: #2c1e20;
+    --expense-row: rgba(228, 112, 122, 0.12);
+
+    --shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lift: 0 4px 16px rgba(0, 0, 0, 0.5);
+    --shadow-sheet: 0 -4px 24px rgba(0, 0, 0, 0.55);
+    --overlay: rgba(0, 0, 0, 0.6);
+    --fab-glow: 0 4px 16px rgba(0, 0, 0, 0.55);
+
+    /* same hues lifted 22% toward white — the palette is tuned for light
+       backgrounds, and violet drops to 1.9:1 on a dark card untouched */
+    --slice-1: #5996df;
+    --slice-2: #389e38;
+    --slice-3: #ed98b8;
+    --slice-4: #f1b638;
+    --slice-5: #4dc197;
+    --slice-6: #ef8961;
+    --slice-7: #7265ba;
+    --slice-8: #e97170;
+    --slice-other: #a4a4a4;
+  }
 }
 
 body {
@@ -254,14 +341,14 @@ body {
 }
 
 .bulk-warn {
-  color: #9a6700;
+  color: var(--warning);
 }
 
 .bulk-row--error {
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  background: rgba(155, 34, 38, 0.08);
+  background: var(--expense-row);
 }
 
 .bulk-error-text {
@@ -533,8 +620,8 @@ body {
 }
 
 .category-chip--active {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
   color: #fff;
 }
 
@@ -605,7 +692,7 @@ body {
 
 .tx-release .tx-prefix,
 .tx-release .tx-amount {
-  color: #1d6a8a;
+  color: var(--release);
 }
 
 .category-group {
@@ -673,7 +760,7 @@ body {
 }
 
 .tx-item-btn:hover {
-  background: #f0faf4;
+  background: var(--accent-wash);
 }
 
 /* Buttons */
@@ -686,14 +773,14 @@ body {
 }
 
 .btn-primary {
-  background: var(--accent);
+  background: var(--accent-solid);
   color: #fff;
   padding: 14px 20px;
   font-weight: 600;
 }
 
 .btn-primary:hover {
-  background: var(--accent-hover);
+  background: var(--accent-solid-hover);
 }
 
 .btn-secondary {
@@ -729,14 +816,14 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--accent);
-  background: #e8f5ee;
+  background: var(--accent-tint);
   padding: 2px 6px;
   border-radius: 4px;
   margin-top: 4px;
 }
 
 .goal-card--long-term {
-  border-color: #c8e6d4;
+  border-color: var(--accent-tint-border);
 }
 
 .goal-card-actions {
@@ -754,14 +841,14 @@ body {
 
 .btn-complete {
   padding: 10px;
-  background: #e8f5ee;
+  background: var(--accent-tint);
   color: var(--accent);
   font-weight: 600;
-  border: 1px solid #c8e6d4;
+  border: 1px solid var(--accent-tint-border);
 }
 
 .btn-complete:hover {
-  background: #d4eddf;
+  background: var(--accent-tint-hover);
 }
 
 .btn-sm {
@@ -778,19 +865,19 @@ body {
 }
 
 .btn-ghost-danger:hover {
-  background: #fdf2f2;
+  background: var(--expense-wash);
   border-color: var(--expense);
 }
 
 .btn-danger {
-  background: var(--expense);
+  background: var(--expense-solid);
   color: #fff;
   padding: 14px 20px;
   font-weight: 600;
 }
 
 .btn-danger:hover {
-  background: #7f1d1d;
+  background: var(--expense-solid-hover);
 }
 
 .modal--compact {
@@ -833,7 +920,7 @@ body {
 
 .btn-type:hover {
   border-color: var(--accent);
-  background: #f0faf4;
+  background: var(--accent-wash);
 }
 
 .btn-full {
@@ -861,7 +948,7 @@ body {
   line-height: 1;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(45, 106, 79, 0.35);
+  box-shadow: var(--fab-glow);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -870,7 +957,7 @@ body {
 }
 
 .fab:hover {
-  background: var(--accent-hover);
+  background: var(--accent-solid-hover);
   transform: scale(1.05);
 }
 
@@ -882,7 +969,7 @@ body {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--overlay);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -904,7 +991,7 @@ body {
   max-height: 90dvh;
   overflow-y: auto;
   border-radius: var(--radius) var(--radius) 0 0;
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-sheet);
 }
 
 @media (min-width: 480px) {
@@ -988,7 +1075,7 @@ body {
 }
 
 .field-warning {
-  color: #9a6700;
+  color: var(--warning);
   font-size: 0.875rem;
   margin-bottom: 12px;
 }
@@ -1369,7 +1456,7 @@ body {
   .budget-overview:hover,
   .recurring-card:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-lift);
   }
 }
 
