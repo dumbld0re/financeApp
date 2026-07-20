@@ -2,9 +2,10 @@
 # Rebuild the PWA icons from assets/glyph.png — the original white dollar-sign
 # artwork on a transparent background — so it lands dead centre at every size.
 #
-# Rounded corners for the manifest icons; full-bleed for apple-touch and
-# maskable, because iOS and Android apply their own mask. Baked-in rounding
-# leaves transparent corners that iOS composites to black on the home screen.
+# Rounded corners (transparent outside) for the manifest icons and for
+# apple-touch — iOS composites that transparency, which shifts the look
+# between light and dark mode. Only the Android maskable icon is full-bleed,
+# since its mask is applied to the whole square.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -32,7 +33,7 @@ TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 
 round_bg 512 "$TMP/r512.png"; compose "$TMP/r512.png" 512 0.586 public/icon-512.png
 round_bg 192 "$TMP/r192.png"; compose "$TMP/r192.png" 192 0.586 public/icon-192.png
-flat_bg  180 "$TMP/f180.png"; compose "$TMP/f180.png" 180 0.560 public/apple-touch-icon.png
+round_bg 180 "$TMP/r180.png"; compose "$TMP/r180.png" 180 0.560 public/apple-touch-icon.png
 flat_bg  512 "$TMP/f512.png"; compose "$TMP/f512.png" 512 0.500 public/icon-maskable.png
 
 echo "icons rebuilt:"
