@@ -1,5 +1,5 @@
 // Bump CACHE to force old caches to be dropped on the next activate.
-const CACHE = 'finance-v2'
+const CACHE = 'finance-v3'
 
 self.addEventListener('install', () => {
   self.skipWaiting()
