@@ -70,6 +70,13 @@ export default function Hero({
   figRef,
 }) {
   const over = netBalance < 0
+  // width of the figure in ems ($, digits, commas, small cents) so CSS can
+  // size it to fit its column instead of pushing the layout wider
+  const whole = Math.trunc(Math.abs(netBalance)).toLocaleString('en-US')
+  const digits = whole.replace(/\D/g, '').length
+  const fit = 0.6 + digits * 0.5 + (whole.length - digits) * 0.22 + 0.72
+  // longest of the three totals, so they shrink together rather than clip
+  const len = Math.max(exact(totalBalance).length, formatCurrency(monthIncome).length + 1, formatCurrency(monthSpent).length + 1)
 
   return (
     <section className="flood" id="top">
@@ -91,24 +98,24 @@ export default function Hero({
       <div className="hero">
         <p className="label rv" style={{ '--d': 1 }}>{today()}</p>
         <p className="lede-a rv" style={{ '--d': 2 }}>{over ? 'You’re over by' : 'You have'}</p>
-        <p className="lede-fig rv" style={{ '--d': 2 }} ref={figRef} aria-label={exact(Math.abs(netBalance))}>
+        <p className="lede-fig rv" style={{ '--d': 2, '--fit': fit }} ref={figRef} aria-label={exact(Math.abs(netBalance))}>
           <Odometer value={Math.abs(netBalance)} start={ready} />
         </p>
         <p className="lede-b rv" style={{ '--d': 3 }}>
           {over ? 'beyond what’s free, with' : 'to spend, with'}{' '}
           <b><Count value={totalSavings} start={ready} format={money(totalSavings)} /></b> set aside.
         </p>
-        <div className="figs rv" style={{ '--d': 4 }}>
+        <div className="figs rv" style={{ '--d': 4, '--len': len }}>
           <div className="fig">
             <p className="label">Total balance</p>
             <Count className="fig-v" value={totalBalance} start={ready} format={exact} />
           </div>
           <div className="fig">
-            <p className="label">In this month</p>
+            <p className="label">Money in</p>
             <span className="fig-v pos">{monthIncome > 0 && '+'}<Count value={monthIncome} start={ready} format={money(monthIncome)} /></span>
           </div>
           <div className="fig">
-            <p className="label">Out this month</p>
+            <p className="label">Money out</p>
             <span className="fig-v">{monthSpent > 0 && '−'}<Count value={monthSpent} start={ready} format={money(monthSpent)} /></span>
           </div>
         </div>
