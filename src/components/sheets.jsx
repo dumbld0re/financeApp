@@ -146,8 +146,9 @@ export function WithdrawSheet({ goal, onClose, onSubmit }) {
 }
 
 /* ------------------------------------------------------------ sync + backup */
-function SyncBody({ enabled, message, onSave, onDisable, onExport, onImport }) {
+function SyncBody({ enabled, message, onSave, onDisable, onExport, onImport, onStartFresh }) {
   const close = useSheetClose()
+  const [armed, setArmed] = useState(false)
   const [secret, setSecret] = useState('')
   const [error, setError] = useState('')
   const [result, setResult] = useState(null)
@@ -204,6 +205,28 @@ function SyncBody({ enabled, message, onSave, onDisable, onExport, onImport }) {
       <div className={result ? 'fold show' : 'fold'}>
         <p className={result?.ok ? 'msg-ok' : 'msg-err'} style={{ paddingTop: 12 }}>{result?.message}</p>
       </div>
+
+      {/* Only offered before this device syncs: once synced, merging with
+          other devices would bring the cleared entries straight back. */}
+      {!enabled && onStartFresh && (
+        <>
+          <h3 className="sub-title">Start fresh</h3>
+          <p className="copy" style={{ marginBottom: 10 }}>
+            Clears entries, savings, budgets and recurring on this device. Your categories stay. Export a backup first if you might want them back.
+          </p>
+          <button
+            type="button"
+            className={armed ? 'cta danger press' : 'ghost danger press'}
+            onClick={() => {
+              if (!armed) return setArmed(true)
+              onStartFresh()
+              close()
+            }}
+          >
+            <TickText>{armed ? 'Tap again to clear everything' : 'Start fresh'}</TickText>
+          </button>
+        </>
+      )}
     </form>
   )
 }

@@ -349,6 +349,17 @@ export default function App() {
     URL.revokeObjectURL(url)
   }
 
+  // keeps only categories; undo restores everything
+  function handleStartFresh() {
+    withUndo('Started fresh, categories kept', {
+      ...data,
+      transactions: [],
+      savingsGoals: [],
+      recurring: [],
+      budgets: {},
+    })
+  }
+
   function handleImport(text) {
     let parsed
     try {
@@ -525,6 +536,7 @@ export default function App() {
           onDisable={handleDisableSync}
           onExport={handleExport}
           onImport={handleImport}
+          onStartFresh={handleStartFresh}
         />
       )}
       {sheet?.kind === 'budgets' && (
