@@ -357,6 +357,7 @@ export default function App() {
       savingsGoals: [],
       recurring: [],
       budgets: {},
+      freshAt: Date.now(),
     })
   }
 
@@ -375,7 +376,9 @@ export default function App() {
         .filter((t) => t && t.id && Number.isFinite(Number(t.amount)) && Number(t.amount) >= 0 && Number.isFinite(Number(t.date)))
         .map((t) => ({ ...t, amount: roundToCents(Number(t.amount)), date: Number(t.date) })),
     })
-    const merged = mergeData(cleaned, data)
+    // an imported backup joins this device's fresh-start stamp, so it merges
+    // instead of being outranked by it
+    const merged = mergeData({ ...cleaned, freshAt: data.freshAt }, data)
     if (merged === data) return { ok: true, message: 'Nothing new to import.' }
     const added = merged.transactions.length - data.transactions.length
     persist(merged)

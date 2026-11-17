@@ -74,6 +74,7 @@ function sanitizePayload(body) {
         .map(([name, limit]) => [String(name), Number(limit)])
         .filter(([, limit]) => Number.isFinite(limit) && limit > 0)
     ),
+    ...(Number(body.freshAt) > 0 ? { freshAt: Number(body.freshAt) } : {}),
     updatedAt: typeof body.updatedAt === 'number' ? body.updatedAt : Date.now(),
   }
 }

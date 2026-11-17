@@ -63,5 +63,6 @@ export function migrateData(data) {
     categories,
     budgets,
     ...(data.updatedAt ? { updatedAt: data.updatedAt } : {}),
+    ...(Number(data.freshAt) ? { freshAt: Number(data.freshAt) } : {}),
   }
 }

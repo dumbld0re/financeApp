@@ -52,6 +52,23 @@ export function mergeData(local, remote) {
   if (!remote) return local
   if (!local) return remote
 
+  // "Start fresh" stamps the data. When the stamps differ, the side that
+  // started fresh more recently replaces the other instead of merging, so
+  // old entries can't flow back in. Categories are still combined.
+  const lf = local.freshAt || 0
+  const rf = remote.freshAt || 0
+  if (lf !== rf) {
+    const [winner, loser] = lf > rf ? [local, remote] : [remote, local]
+    const income = unionCategories(winner.categories?.income ?? [], loser.categories?.income ?? [])
+    const expense = unionCategories(winner.categories?.expense ?? [], loser.categories?.expense ?? [])
+    const sameCats =
+      income.length === (winner.categories?.income?.length ?? 0) &&
+      expense.length === (winner.categories?.expense?.length ?? 0)
+    // remote wins with nothing to add: hand back remote itself (already in sync)
+    if (winner === remote && sameCats) return remote
+    return { ...winner, categories: { income, expense }, updatedAt: Math.max(local.updatedAt || 0, remote.updatedAt || 0) }
+  }
+
   let changed = false
 
   const txById = new Map(remote.transactions.map((t) => [t.id, t]))
@@ -140,6 +157,7 @@ export function mergeData(local, remote) {
     recurring,
     categories: { income, expense },
     budgets,
+    ...(lf ? { freshAt: lf } : {}),
     updatedAt: Math.max(local.updatedAt || 0, remote.updatedAt || 0),
   }
 }
