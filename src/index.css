@@ -266,8 +266,8 @@ button.kv > * { position: relative; }
 .chip:hover:not(:disabled) { background: var(--fill-2); }
 .chip:disabled { opacity: .45; }
 .chip .ck { display: inline-grid; width: 0; overflow: hidden; transition: width .35s var(--spring), margin .35s var(--spring); }
-.chip[aria-pressed='true'] { background: var(--ink); color: var(--paper); }
-.chip[aria-pressed='true'] .ck { width: 0.875rem; margin-right: 0.375rem; }
+.chip[aria-pressed='true'], .chip[aria-checked='true'] { background: var(--ink); color: var(--paper); }
+.chip[aria-pressed='true'] .ck, .chip[aria-checked='true'] .ck { width: 0.875rem; margin-right: 0.375rem; }
 .chip.danger { color: var(--neg); }
 .swap .chip { animation: chipIn .45s var(--ease) both; animation-delay: calc(var(--d, 0) * 30ms); }
 @keyframes chipIn { from { opacity: 0; transform: translateY(0.375rem) scale(.96); } }

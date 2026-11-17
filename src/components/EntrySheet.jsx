@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   formatCurrency,
   fromDateInputValue,
@@ -9,7 +9,7 @@ import {
 } from '../utils/calculations'
 import { categoriesForType, defaultCategoryForType } from '../utils/categories'
 import Sheet, { useSheetClose } from './Sheet'
-import { AmountField, Chips, Seg, TickText } from './controls'
+import { AmountField, Chips, Seg, TickText, focusGroup } from './controls'
 
 const TYPES = [
   { value: 'expense', label: 'Expense' },
@@ -42,6 +42,34 @@ function Form({ goals, categories, preselectedGoalId, transaction, netBalance, o
   const [day, setDay] = useState(editing ? dayChoice(transaction.date) : 'today')
   const [dateStr, setDateStr] = useState(toDateInputValue(editing ? transaction.date : Date.now()))
   const [shake, setShake] = useState(0)
+
+  // Enter walks the fields in order and saves after the last one;
+  // Shift+Enter walks back. Arrow keys choose inside chip groups.
+  const amountRef = useRef(null)
+  const noteRef = useRef(null)
+  const pickRef = useRef(null)
+  const dayRef = useRef(null)
+  const dateRef = useRef(null)
+  function step(from, back = false) {
+    const order = [
+      ['amount', () => amountRef.current?.focus()],
+      type !== 'savings_transfer' && ['note', () => noteRef.current?.focus()],
+      ['pick', () => focusGroup(pickRef.current)],
+      ['day', () => focusGroup(dayRef.current)],
+      day === 'other' && ['date', () => dateRef.current?.focus()],
+    ].filter(Boolean)
+    let i = order.findIndex(([name]) => name === from) + (back ? -1 : 1)
+    if (back) {
+      if (i >= 0) order[i][1]()
+      return
+    }
+    // a step whose target is missing (e.g. no goals yet) is skipped
+    while (i < order.length) {
+      if (order[i][1]() !== false) return
+      i++
+    }
+    submit()
+  }
 
   // categories that were removed after an entry used them stay selectable
   const base = categoriesForType(type, categories)
@@ -114,13 +142,22 @@ function Form({ goals, categories, preselectedGoalId, transaction, netBalance, o
         submit()
       }}
     >
-      {!editing && !goalAdd && <Seg label="Type" options={TYPES} value={type} onChange={changeType} />}
+      {!editing && !goalAdd && (
+        <Seg label="Type" options={TYPES} value={type} onChange={changeType} onEnter={(back) => !back && amountRef.current?.focus()} />
+      )}
 
-      <AmountField value={amount} onChange={setAmount} onEnter={submit} shake={shake} />
+      <AmountField value={amount} onChange={setAmount} onEnter={(back) => step('amount', back)} shake={shake} inputRef={amountRef} />
 
       {type !== 'savings_transfer' && (
         <input
+          ref={noteRef}
           className="text group"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              step('note', e.shiftKey)
+            }
+          }}
           placeholder={type === 'income' ? 'From where? (optional)' : 'What was it?'}
           value={note}
           onChange={(e) => setNote(e.target.value)}
@@ -135,6 +172,8 @@ function Form({ goals, categories, preselectedGoalId, transaction, netBalance, o
           goalOptions.length ? (
             <Chips
               label="Save to"
+              groupRef={pickRef}
+              onEnter={(back) => step('pick', back)}
               swapKey={type}
               value={goalPick}
               onChange={setGoalId}
@@ -144,7 +183,7 @@ function Form({ goals, categories, preselectedGoalId, transaction, netBalance, o
             <p className="copy">No savings goals yet. Create one from Savings.</p>
           )
         ) : (
-          <Chips label="Category" swapKey={type} value={category} onChange={setCategory} options={catOptions} />
+          <Chips label="Category" groupRef={pickRef} onEnter={(back) => step('pick', back)} swapKey={type} value={category} onChange={setCategory} options={catOptions} />
         )}
       </div>
 
@@ -152,6 +191,8 @@ function Form({ goals, categories, preselectedGoalId, transaction, netBalance, o
       <div className="group">
         <Chips
           label="Date"
+          groupRef={dayRef}
+          onEnter={(back) => step('day', back)}
           value={day}
           onChange={setDay}
           options={[
@@ -163,6 +204,13 @@ function Form({ goals, categories, preselectedGoalId, transaction, netBalance, o
         <div className={day === 'other' ? 'fold show' : 'fold'}>
           <div>
             <input
+              ref={dateRef}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  step('date', e.shiftKey)
+                }
+              }}
               type="date"
               className="text"
               style={{ marginTop: 10 }}

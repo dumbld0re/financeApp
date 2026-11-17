@@ -206,13 +206,14 @@ function SyncBody({ enabled, message, onSave, onDisable, onExport, onImport, onS
         <p className={result?.ok ? 'msg-ok' : 'msg-err'} style={{ paddingTop: 12 }}>{result?.message}</p>
       </div>
 
-      {/* Only offered before this device syncs: once synced, merging with
-          other devices would bring the cleared entries straight back. */}
-      {!enabled && onStartFresh && (
+      {/* One-off reset. With sync on, the cleared copy is pushed and
+          replaces the cloud copy; another device that still holds old
+          entries needs the same tap once. */}
+      {onStartFresh && (
         <>
           <h3 className="sub-title">Start fresh</h3>
           <p className="copy" style={{ marginBottom: 10 }}>
-            Clears entries, savings, budgets and recurring on this device. Your categories stay. Export a backup first if you might want them back.
+            Clears entries, savings, budgets and recurring{enabled ? ' here and in the cloud' : ' on this device'}. Your categories stay.{enabled ? ' If another device still shows old entries, tap this there once too.' : ''}
           </p>
           <button
             type="button"

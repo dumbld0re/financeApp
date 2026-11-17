@@ -69,6 +69,11 @@ function sanitizePayload(body) {
         ? body.categories.expense.map(String)
         : ['Transport', 'Gas', 'Clothes', 'Food'],
     },
+    budgets: Object.fromEntries(
+      Object.entries(body.budgets && typeof body.budgets === 'object' ? body.budgets : {})
+        .map(([name, limit]) => [String(name), Number(limit)])
+        .filter(([, limit]) => Number.isFinite(limit) && limit > 0)
+    ),
     updatedAt: typeof body.updatedAt === 'number' ? body.updatedAt : Date.now(),
   }
 }
